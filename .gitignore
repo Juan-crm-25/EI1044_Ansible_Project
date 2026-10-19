@@ -17,4 +17,5 @@ __pycache__/
 .idea/
 *.swp
 *~
+# Solo para quien use WSL: Windows crea estos ficheros al copiar archivos a Linux
 *:Zone.Identifier

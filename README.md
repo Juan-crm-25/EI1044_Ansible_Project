@@ -32,10 +32,10 @@ Las copias van cifradas, con retención de **7 diarias, 4 semanales y 6 mensuale
 
 ### Nodo de control
 
-Cada miembro trabaja desde su portátil con **Windows + WSL2 (Ubuntu)**.
+Un sistema **Linux** (probado en **Ubuntu**) con Python 3 y `pipx` o `venv`.
 
-- Trabajar siempre dentro de WSL, en `~/`, **nunca en `/mnt/c/...`**: Ansible ignora el `ansible.cfg` en carpetas con permisos de escritura para todos.
-- **Docker Desktop** con la integración WSL activada para la distro de Ubuntu (*Settings → Resources → WSL Integration*).
+- Clonar el repositorio en una carpeta propia del usuario (por ejemplo, `~/`). Ansible **ignora** el `ansible.cfg` si la carpeta tiene permisos de escritura para todos (por ejemplo, `/tmp` o discos externos y de otros sistemas montados).
+- **Docker Engine** con el plugin **Docker Compose** (`docker compose`), y el usuario en el grupo `docker` (`sudo usermod -aG docker $USER` y volver a iniciar sesión).
 
 ### Versiones de las herramientas
 
@@ -50,6 +50,13 @@ Las versiones están fijadas en [`requirements.txt`](requirements.txt) y deben s
 ---
 
 ## Instalación
+
+En un Ubuntu recién instalado, primero:
+
+```bash
+sudo apt install pipx python3-venv
+pipx ensurepath        # añade ~/.local/bin al PATH (abrir terminal nueva)
+```
 
 **Opción A: pipx** (cada herramienta en su propio entorno aislado):
 
@@ -82,7 +89,7 @@ ansible-config dump --only-changed -t all   # opciones leídas de ansible.cfg
 |------------------|----------------|
 | `ansible.cfg`    | Configuración común de Ansible: inventario, ruta de roles, usuario remoto `ansible`, salida en YAML y optimizaciones de SSH (pipelining, reutilización de conexiones). |
 | `requirements.txt` | Versiones de las herramientas del nodo de control. |
-| `.gitignore`     | Evita subir secretos, entornos de Python, cachés y ficheros de editores o de WSL. |
+| `.gitignore`     | Evita subir secretos, entornos de Python, cachés y ficheros de editores y del sistema operativo. |
 
 > ⚠️ **Solo laboratorio:** `ansible.cfg` desactiva la comprobación de claves de host SSH (`host_key_checking = False`), porque los contenedores se recrean a menudo y cambian de clave. En un entorno real no se haría.
 
