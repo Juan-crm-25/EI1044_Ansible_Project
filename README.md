@@ -141,7 +141,7 @@ proyecto-ansible/
 
 ## Forma de trabajo
 
-- Se trabaja en ramas (`feature/...`) y los cambios se van subiendo a `main` poco a poco.
+- Cada tarea se hace en su propia rama (`feature/...`) y llega a `main` mediante una **Pull Request** que el propio autor rellena con la plantilla y fusiona. No hay revisor: la PR sirve para que cada uno repase lo que ha hecho y para dejar explicado en el historial qué cambió y por qué.
 - Variables con prefijo por rol: `web_`, `db_`, `backup_`. Las compartidas, en `inventory/group_vars/all/main.yml`.
 - Una tarea está **hecha** cuando funciona sobre un laboratorio limpio, es idempotente (`changed=0` en la segunda ejecución), pasa `yamllint` y `ansible-lint` y tiene el README del rol actualizado.
 - 🚧 **Pendiente:** detalles en [`CONTRIBUTING.md`](CONTRIBUTING.md).
