@@ -34,6 +34,3 @@ ansible-playbook playbooks/test_<rol>.yml    # 2.ª ejecución → changed=0
 - [ ] Variables con el prefijo del rol (`web_`, `db_`, `backup_`)
 - [ ] Sin secretos en claro (contraseñas en Vault; ni `.vault_pass` ni claves SSH)
 - [ ] README del rol actualizado
-
-## Notas para el revisor
-<!-- Qué queda fuera de esta PR, o dónde quieres que se fije especialmente. -->
