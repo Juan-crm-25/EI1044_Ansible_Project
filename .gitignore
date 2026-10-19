@@ -1,0 +1,20 @@
+# --- Secretos (NUNCA al repo) ---
+.vault_pass
+lab/ssh/*
+!lab/ssh/.gitkeep
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- Ansible y herramientas ---
+*.retry
+.ansible/
+
+# --- Editores y sistema operativo ---
+.vscode/
+.idea/
+*.swp
+*~
+*:Zone.Identifier
