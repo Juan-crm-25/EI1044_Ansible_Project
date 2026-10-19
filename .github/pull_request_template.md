@@ -1,5 +1,7 @@
 <!--
 Título de la PR: "<rol>: <resumen>"   (p. ej. "backup: inicializar repositorio restic")
+Rellena la plantilla antes de fusionar tú mismo la PR: repasa lo que has hecho y
+deja la explicación que quedará en el historial.
 Los comentarios como este no se ven en la PR publicada.
 -->
 
