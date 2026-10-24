@@ -103,19 +103,59 @@ ansible-config dump --only-changed -t all   # opciones leídas de ansible.cfg
 
 ## Laboratorio
 
-> 🚧 **Pendiente.** Contenedores Docker con systemd + SSH (`lab/Dockerfile`, `lab/docker-compose.yml`).
+Tres contenedores Docker con Ubuntu 22.04, systemd y SSH, que se comportan como
+servidores reales. La imagen se construye con `lab/Dockerfile` (a partir de
+`geerlingguy/docker-ubuntu2204-ansible`) y las máquinas se definen en `lab/docker-compose.yml`.
 
-| Máquina    | Puerto SSH | Otros puertos |
-|------------|-----------|---------------|
-| `web01`    | 2201      | 8080 → 80     |
-| `db01`     | 2202      |               |
-| `backup01` | 2203      |               |
+| Máquina    | Grupo            | SSH (127.0.0.1) | Otros puertos | Volumen de datos |
+|------------|------------------|-----------------|---------------|------------------|
+| `web01`    | `webservers`     | 2201            | 8080 → 80     | —                |
+| `db01`     | `databases`      | 2202            |               | `db_data` → `/var/lib/postgresql` |
+| `backup01` | `backup_servers` | 2203            |               | `restic_repo` → `/srv/restic` |
+
+Las máquinas se ven entre sí por su nombre (`db01`, `web01`, `backup01`) dentro de la red de Docker.
+
+### Puesta en marcha (una sola vez)
+
+1. Crear la clave SSH del laboratorio. **El nombre debe ser exactamente este**, porque es el que usa el inventario:
+   ```bash
+   ssh-keygen -t ed25519 -C "ansible-lab" -f ~/.ssh/id_ed25519_ansible_lab -N ""
+   cp ~/.ssh/id_ed25519_ansible_lab.pub lab/ssh/authorized_keys
+   ```
+2. Construir y levantar las máquinas:
+   ```bash
+   docker compose -f lab/docker-compose.yml up -d --build
+   ```
+3. Comprobar la conexión (debe dar `ok=3 changed=0 failed=0` en las tres):
+   ```bash
+   ansible-playbook playbooks/ping.yml
+   ```
+
+### Comandos habituales
+
+| Comando | Qué hace |
+|---------|----------|
+| `docker compose -f lab/docker-compose.yml ps` | Estado de las máquinas |
+| `docker compose -f lab/docker-compose.yml stop` / `start` | Parar / arrancar sin perder nada |
+| `docker compose -f lab/docker-compose.yml down` | Destruir las máquinas (los volúmenes se conservan) |
+| `docker compose -f lab/docker-compose.yml down -v` | Destruir máquinas **y volúmenes**: laboratorio limpio |
+| `docker exec -it db01 bash` | Entrar en una máquina como root |
+| `ssh -i ~/.ssh/id_ed25519_ansible_lab -p 2202 ansible@127.0.0.1` | Entrar por SSH como Ansible |
+
+### ⚠️ Concesiones solo de laboratorio
+
+- **Contenedores `privileged`**: systemd lo necesita. Por eso el Dockerfile enmascara
+  `systemd-binfmt`, que si no borraría las reglas `binfmt_misc` del anfitrión
+  (por ejemplo, rompe la ejecución de `.exe` en WSL o de `qemu` en Linux).
+- **Clave SSH sin passphrase**, para que Ansible no dependa de `ssh-agent`.
+- **`host_key_checking = False`**, y las tres máquinas comparten claves de host.
+- Los puertos se publican **solo en `127.0.0.1`**: el laboratorio no es accesible desde la red.
 
 ---
 
 ## Uso
 
-> 🚧 **Pendiente.** Comandos para levantar el laboratorio, comprobar la conexión (`ansible all -m ping`), desplegar (`site.yml`), lanzar copias (`playbooks/backup.yml`) y restaurar (`playbooks/restore.yml`).
+> 🚧 **Pendiente.** Comandos para desplegar (`site.yml`), lanzar copias (`playbooks/backup.yml`) y restaurar (`playbooks/restore.yml`).
 
 ---
 
