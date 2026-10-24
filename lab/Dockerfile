@@ -15,6 +15,10 @@ RUN useradd --create-home --shell /bin/bash ansible \
 # 3. Clave pública autorizada (fichero local, ignorado en Git)
 COPY --chown=ansible:ansible --chmod=0600 ssh/authorized_keys /home/ansible/.ssh/authorized_keys
 
+# 4. Evita que systemd del contenedor borre las reglas binfmt del anfitrión
+#    (rompería, por ejemplo, la ejecución de .exe en WSL o qemu en Linux)
+RUN systemctl mask systemd-binfmt.service
+
 EXPOSE 22
 # Heredado de la imagen base; lo dejamos explícito: el contenedor arranca systemd
 CMD ["/lib/systemd/systemd"]

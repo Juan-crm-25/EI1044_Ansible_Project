@@ -1,3 +1,4 @@
+---
 name: ansible-lab
 
 # Configuración común a las tres máquinas (se reutiliza con <<: *maquina)
