@@ -1,0 +1,19 @@
+---
+- name: Comprobar conexión con las máquinas del laboratorio
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Comprobar SSH y Python
+      ansible.builtin.ping:
+
+    - name: Comprobar que sudo funciona
+      ansible.builtin.command: whoami
+      become: true
+      register: usuario_sudo
+      changed_when: false
+
+    - name: Verificar que sudo da acceso de root
+      ansible.builtin.assert:
+        that: usuario_sudo.stdout == "root"
+        success_msg: "{{ inventory_hostname }}: SSH, Python y sudo correctos"

@@ -1,0 +1,49 @@
+---
+name: ansible-lab
+
+# Configuración común a las tres máquinas (se reutiliza con <<: *maquina)
+x-maquina: &maquina
+  build: .
+  image: ansible-lab:latest
+  privileged: true
+  cgroup: host
+  tmpfs:
+    - /run
+    - /run/lock
+    - /tmp
+  restart: unless-stopped
+
+services:
+  web01:
+    <<: *maquina
+    container_name: web01
+    hostname: web01
+    ports:
+      - "127.0.0.1:2201:22"
+      - "127.0.0.1:8080:80"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+  db01:
+    <<: *maquina
+    container_name: db01
+    hostname: db01
+    ports:
+      - "127.0.0.1:2202:22"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - db_data:/var/lib/postgresql
+
+  backup01:
+    <<: *maquina
+    container_name: backup01
+    hostname: backup01
+    ports:
+      - "127.0.0.1:2203:22"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - restic_repo:/srv/restic
+
+volumes:
+  db_data:
+  restic_repo:
