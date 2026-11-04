@@ -29,7 +29,7 @@
 
     - name: Crear la tabla de ejemplo
       community.postgresql.postgresql_table:
-        db: "{{ backup_db_name }}"
+        login_db: "{{ backup_db_name }}"
         name: clientes
         columns:
           - id integer PRIMARY KEY
@@ -40,7 +40,7 @@
 
     - name: Insertar las filas de ejemplo (solo si no existen)
       community.postgresql.postgresql_query:
-        db: "{{ backup_db_name }}"
+        login_db: "{{ backup_db_name }}"
         query: >-
           INSERT INTO clientes (id, nombre, ciudad) VALUES
           (1, 'Ana', 'Castelló'), (2, 'Luis', 'València'), (3, 'Marta', 'Alacant')
