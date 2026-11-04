@@ -161,7 +161,19 @@ deben arrancarlos explícitamente, por ejemplo con `ansible.builtin.service` y `
 
 ## Uso
 
-> 🚧 **Pendiente.** Comandos para desplegar (`site.yml`), lanzar copias (`playbooks/backup.yml`) y restaurar (`playbooks/restore.yml`).
+### Copias de seguridad
+
+```bash
+# Aplicar el rol backup (de momento, con una BD de ejemplo y la contraseña de pruebas)
+ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml
+
+# Lanzar una copia en el momento
+ansible-playbook playbooks/backup.yml
+```
+
+Detalles (variables, secretos, comandos útiles y pendientes) en [`roles/backup/README.md`](roles/backup/README.md).
+
+> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y restaurar (`playbooks/restore.yml`).
 
 ---
 
