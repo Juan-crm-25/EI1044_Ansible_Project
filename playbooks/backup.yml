@@ -14,13 +14,13 @@
 
       always:
         - name: Obtener el identificador de esta ejecución del servicio
-          ansible.builtin.command: systemctl show backup-db.service --property=InvocationID --value
-          register: backup_invocacion
-          changed_when: false
+          ansible.builtin.systemd_service:
+            name: backup-db.service
+          register: backup_servicio
 
         - name: Leer el registro de esta ejecución
           ansible.builtin.command: >-
-            journalctl _SYSTEMD_INVOCATION_ID={{ backup_invocacion.stdout }}
+            journalctl _SYSTEMD_INVOCATION_ID={{ backup_servicio.status.InvocationID }}
             --output=cat --no-pager
           register: backup_registro
           changed_when: false
