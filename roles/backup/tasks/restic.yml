@@ -51,6 +51,8 @@
     user: "{{ backup_repo_user }}"
     key: "{{ backup_clave_root.ssh_public_key }}"
     key_options: 'restrict,command="/usr/lib/openssh/sftp-server"'
+    # Solo la clave actual: al reconstruir db01, la de la máquina antigua queda revocada
+    exclusive: true
   delegate_to: "{{ backup_repo_host }}"
 
 - name: Leer la clave de host de backup01

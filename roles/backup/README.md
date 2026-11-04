@@ -27,6 +27,7 @@ El rol se aplica a **db01** y prepara también **backup01** mediante `delegate_t
 | `tasks/restic.yml` | Instala restic, prepara backup01 (usuario y directorio), la confianza SSH, la contraseña y el `restic init` |
 | `tasks/db_dump.yml` | Instala el script de copia (`templates/backup.sh.j2`) |
 | `tasks/schedule.yml` | Instala y activa el servicio y el temporizador de systemd |
+| `tasks/restore.yml` | Restauración. **No** la ejecuta el rol: la llama `playbooks/restore.yml` |
 
 ## Requisitos
 
@@ -56,6 +57,8 @@ cambiarlas hay que usar `inventory/group_vars/databases/main.yml` (no `backup_se
 | `backup_script` | `/usr/local/sbin/backup-db.sh` | Ruta del script de copia |
 | `backup_keep_daily` / `_weekly` / `_monthly` | `7` / `4` / `6` | Retención |
 | `backup_schedule` | `*-*-* 03:00:00 Europe/Madrid` | Cuándo se hace la copia (formato `OnCalendar` de systemd) |
+| `backup_restore_snapshot` | `latest` | Copia a restaurar: la más reciente o el identificador de un snapshot |
+| `backup_restore_confirmar` | `false` | Hay que ponerla a `true` para restaurar (sobrescribe la BD) |
 
 ## Secretos
 
@@ -93,6 +96,33 @@ ansible-playbook playbooks/backup.yml
 Muestra el registro de la copia y termina con el identificador del snapshot. Es un **playbook
 de acción**: cada ejecución hace una copia, así que **siempre da `changed=1`**. No es un fallo
 de idempotencia.
+
+**Restaurar la base de datos** desde la copia más reciente, o desde una concreta:
+
+```bash
+ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
+ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true -e backup_restore_snapshot=a29046bf
+```
+
+Sin `backup_restore_confirmar=true` se niega, porque **sobrescribe** la base de datos. La
+restauración se hace en una sola transacción (`pg_restore --single-transaction`): si algo falla,
+la base de datos queda como estaba. Antes hay que haber aplicado el rol `backup` en db01
+(con `site.yml`).
+
+**Escenario de la demo: perder db01 y recuperarla**
+
+```bash
+ansible-playbook playbooks/backup.yml                    # 1. copia reciente
+docker compose -f lab/docker-compose.yml rm -sf db01     # 2. desastre: se pierde db01...
+docker volume rm ansible-lab_db_data                     #    ...con sus datos (el repo de backup01 sobrevive)
+docker compose -f lab/docker-compose.yml up -d db01      # 3. db01 nueva y vacía
+ansible-playbook site.yml                                # 4. reconstruir (hoy: playbooks/test_backup.yml)
+ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true   # 5. recuperar los datos
+```
+
+Al volver a aplicar el rol, la db01 nueva se conecta al **mismo repositorio** (el `restic init`
+se salta porque ya existe) y su clave SSH nueva **sustituye** a la de la máquina perdida en
+backup01 (`exclusive: true`).
 
 **Comandos útiles en db01** (como root):
 
@@ -166,6 +196,11 @@ Cada punto está marcado también en el código; se encuentran con
    son irrecuperables.
 4. Cuando esté, ya no hará falta `-e @~/.ansible-lab-secrets.yml`.
 
-### PENDIENTE (restore)
+### PENDIENTE (restore), para los roles `database` y `webserver`
 
-La parte de `playbooks/restore.yml` que restaura desde restic (en otra PR).
+`playbooks/restore.yml` ya restaura los datos. Faltan, en los huecos marcados en ese fichero:
+
+1. **Rol `database`**: un play que verifique la base de datos restaurada (por ejemplo, que
+   están los datos de ejemplo conocidos). Además, tu rol debe crear la base de datos (vacía)
+   al reconstruir db01: `pg_restore` restaura **dentro** de ella.
+2. **Rol `webserver`**: un play que verifique que la web responde.

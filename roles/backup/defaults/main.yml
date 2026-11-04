@@ -33,6 +33,13 @@ backup_keep_daily: 7
 backup_keep_weekly: 4
 backup_keep_monthly: 6
 
+# --- Restauración (tasks/restore.yml, la usa playbooks/restore.yml) ---
+# Copia a restaurar: "latest" (la más reciente) o el identificador de un snapshot.
+backup_restore_snapshot: latest
+# Restaurar sobrescribe la base de datos: hay que confirmarlo con
+# -e backup_restore_confirmar=true
+backup_restore_confirmar: false
+
 # --- Programación (formato OnCalendar de systemd): todos los días a las 03:00 ---
 # La zona horaria al final hace que sean las 03:00 españolas aunque la máquina
 # esté en UTC (systemd aplica solo el cambio de hora de verano/invierno).
