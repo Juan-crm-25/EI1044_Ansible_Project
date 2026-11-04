@@ -34,4 +34,6 @@ backup_keep_weekly: 4
 backup_keep_monthly: 6
 
 # --- Programación (formato OnCalendar de systemd): todos los días a las 03:00 ---
-backup_schedule: "*-*-* 03:00:00"
+# La zona horaria al final hace que sean las 03:00 españolas aunque la máquina
+# esté en UTC (systemd aplica solo el cambio de hora de verano/invierno).
+backup_schedule: "*-*-* 03:00:00 Europe/Madrid"

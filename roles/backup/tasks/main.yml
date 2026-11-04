@@ -12,3 +12,6 @@
 
 - name: Instalar el script de copia de la base de datos
   ansible.builtin.import_tasks: db_dump.yml
+
+- name: Programar la copia diaria
+  ansible.builtin.import_tasks: schedule.yml
