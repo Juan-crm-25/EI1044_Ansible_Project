@@ -1,0 +1,68 @@
+---
+# Restaura la base de datos desde restic. No se ejecuta con el rol: lo llama
+# playbooks/restore.yml con include_role (tasks_from: restore).
+
+- name: Exigir confirmación antes de sobrescribir la base de datos
+  ansible.builtin.assert:
+    that: backup_restore_confirmar | bool
+    fail_msg: >-
+      La restauración sobrescribe la base de datos "{{ backup_db_name }}".
+      Para confirmar, añade -e backup_restore_confirmar=true
+    quiet: true
+
+- name: Comprobar que el rol backup está aplicado en esta máquina
+  ansible.builtin.stat:
+    path: /etc/restic/password
+  register: backup_password_file
+
+- name: Exigir el acceso al repositorio
+  ansible.builtin.assert:
+    that: backup_password_file.stat.exists
+    fail_msg: >-
+      No existe /etc/restic/password: aplica antes el rol backup
+      (site.yml, o playbooks/test_backup.yml mientras no exista).
+    quiet: true
+
+- name: Restaurar desde el repositorio restic
+  environment:
+    RESTIC_REPOSITORY: "{{ backup_repo_url }}"
+    RESTIC_PASSWORD_FILE: /etc/restic/password
+    RESTIC_CACHE_DIR: /var/cache/restic
+  block:
+    - name: Buscar las copias disponibles
+      ansible.builtin.command:
+        cmd: "{{ backup_restic_bin }} snapshots --tag postgres --json"
+      register: backup_snapshots
+      changed_when: false
+
+    - name: Elegir la copia a restaurar
+      vars:
+        backup_lista: "{{ backup_snapshots.stdout | from_json | sort(attribute='time') }}"
+        backup_coincidencias: "{{ backup_lista | selectattr('id', 'match', backup_restore_snapshot | string) | list }}"
+      ansible.builtin.set_fact:
+        backup_restore_id: >-
+          {{ (backup_lista | last).short_id if (backup_restore_snapshot | string) == 'latest' and backup_lista
+             else (backup_coincidencias | first).short_id if backup_coincidencias | length == 1
+             else '' }}
+
+    - name: Comprobar que existe la copia a restaurar
+      ansible.builtin.assert:
+        that: backup_restore_id | length > 0
+        fail_msg: >-
+          No hay ninguna copia que coincida con "{{ backup_restore_snapshot }}"
+          (copias disponibles: {{ backup_snapshots.stdout | from_json | map(attribute='short_id') | join(', ') or 'ninguna' }}).
+        quiet: true
+
+    - name: Restaurar la base de datos desde la copia {{ backup_restore_id }}
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          {{ backup_restic_bin }} dump {{ backup_restore_id }} /{{ backup_db_name }}.dump \
+            | runuser -u postgres -- pg_restore --clean --if-exists --single-transaction \
+                --exit-on-error --dbname {{ backup_db_name }}
+        executable: /bin/bash
+      changed_when: true
+
+- name: Resumen
+  ansible.builtin.debug:
+    msg: "Base de datos {{ backup_db_name }} restaurada desde la copia {{ backup_restore_id }}"

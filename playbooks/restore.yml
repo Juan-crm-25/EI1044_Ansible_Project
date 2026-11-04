@@ -1,0 +1,23 @@
+---
+# Recuperación ante desastres: restaura los datos desde la copia de seguridad y
+# verifica que todo funciona. Antes hay que reconstruir las máquinas con
+# site.yml (mientras no exista, playbooks/test_backup.yml para db01).
+#
+#   ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
+#   ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true -e backup_restore_snapshot=<id>
+
+- name: Restaurar la base de datos desde la copia de seguridad
+  hosts: databases
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Restaurar los datos desde restic
+      ansible.builtin.include_role:
+        name: backup
+        tasks_from: restore
+
+# PENDIENTE (rol database): añadir aquí un play que verifique la base de datos
+# restaurada (por ejemplo, que están los datos de ejemplo conocidos).
+
+# PENDIENTE (rol webserver): añadir aquí un play que verifique que la web responde.

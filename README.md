@@ -169,11 +169,16 @@ ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml
 
 # Lanzar una copia en el momento
 ansible-playbook playbooks/backup.yml
+
+# Restaurar la base de datos desde la copia más reciente (sobrescribe la BD actual)
+ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
 ```
 
-Detalles (variables, secretos, comandos útiles y pendientes) en [`roles/backup/README.md`](roles/backup/README.md).
+Detalles (variables, secretos, escenario de la demo, comandos útiles y pendientes) en
+[`roles/backup/README.md`](roles/backup/README.md).
 
-> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y restaurar (`playbooks/restore.yml`).
+> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y las verificaciones de `restore.yml`
+> de los roles `database` y `webserver`.
 
 ---
 
