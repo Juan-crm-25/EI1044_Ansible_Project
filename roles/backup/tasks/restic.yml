@@ -1,0 +1,113 @@
+---
+# --- A. Instalar restic (binario oficial, versión fijada y verificada) ---
+- name: Instalar restic {{ backup_restic_version }}
+  vars:
+    backup_restic_fichero: "restic_{{ backup_restic_version }}_linux_{{ backup_restic_arch_map[ansible_architecture] }}.bz2"
+    backup_restic_descargas: "https://github.com/restic/restic/releases/download/v{{ backup_restic_version }}"
+  block:
+    - name: Descargar restic y verificar su suma SHA-256
+      ansible.builtin.get_url:
+        url: "{{ backup_restic_descargas }}/{{ backup_restic_fichero }}"
+        dest: "/usr/local/src/{{ backup_restic_fichero }}"
+        checksum: "sha256:{{ backup_restic_descargas }}/SHA256SUMS"
+        mode: "0644"
+
+    - name: Descomprimir el binario de restic
+      community.general.decompress:
+        src: "/usr/local/src/{{ backup_restic_fichero }}"
+        dest: "{{ backup_restic_bin }}"
+        format: bz2
+        mode: "0755"
+
+# --- B. Preparar backup01 (tareas delegadas) ---
+- name: Crear el usuario del repositorio en backup01
+  ansible.builtin.user:
+    name: "{{ backup_repo_user }}"
+    system: true
+    shell: /bin/bash
+  delegate_to: "{{ backup_repo_host }}"
+
+- name: Crear el directorio del repositorio
+  ansible.builtin.file:
+    path: "{{ backup_repo_path }}"
+    state: directory
+    owner: "{{ backup_repo_user }}"
+    group: "{{ backup_repo_user }}"
+    mode: "0700"
+  delegate_to: "{{ backup_repo_host }}"
+
+# --- C. Confianza SSH entre db01 y backup01 ---
+- name: Generar la clave SSH de las copias en db01
+  ansible.builtin.user:
+    name: root
+    generate_ssh_key: true
+    ssh_key_type: ed25519
+    ssh_key_file: .ssh/id_ed25519_restic
+    ssh_key_comment: "restic@{{ inventory_hostname }}"
+  register: backup_clave_root
+
+- name: Autorizar la clave de db01 para el usuario del repositorio (solo SFTP)
+  ansible.posix.authorized_key:
+    user: "{{ backup_repo_user }}"
+    key: "{{ backup_clave_root.ssh_public_key }}"
+    key_options: 'restrict,command="/usr/lib/openssh/sftp-server"'
+  delegate_to: "{{ backup_repo_host }}"
+
+- name: Leer la clave de host de backup01
+  ansible.builtin.slurp:
+    src: /etc/ssh/ssh_host_ed25519_key.pub
+  delegate_to: "{{ backup_repo_host }}"
+  register: backup_clave_host
+
+- name: Registrar backup01 en los known_hosts de root
+  ansible.builtin.known_hosts:
+    name: "{{ backup_repo_host }}"
+    key: "{{ backup_repo_host }} {{ backup_clave_host.content | b64decode | trim }}"
+
+- name: Configurar SSH de root para conectar con backup01
+  ansible.builtin.blockinfile:
+    path: /root/.ssh/config
+    create: true
+    mode: "0600"
+    block: |
+      Host {{ backup_repo_host }}
+          User {{ backup_repo_user }}
+          IdentityFile /root/.ssh/id_ed25519_restic
+          IdentitiesOnly yes
+
+# --- D. Contraseña, configuración de acceso e inicialización del repositorio ---
+- name: Crear el directorio de configuración de restic
+  ansible.builtin.file:
+    path: /etc/restic
+    state: directory
+    mode: "0700"
+
+- name: Guardar la contraseña del repositorio
+  ansible.builtin.copy:
+    content: "{{ backup_restic_password }}"
+    dest: /etc/restic/password
+    mode: "0600"
+  no_log: true
+
+- name: Guardar la configuración de acceso al repositorio
+  ansible.builtin.copy:
+    content: |
+      RESTIC_REPOSITORY={{ backup_repo_url }}
+      RESTIC_PASSWORD_FILE=/etc/restic/password
+    dest: /etc/restic/restic.env
+    mode: "0600"
+
+- name: Comprobar si el repositorio ya existe
+  ansible.builtin.stat:
+    path: "{{ backup_repo_path }}/config"
+  delegate_to: "{{ backup_repo_host }}"
+  register: backup_repo_config
+
+- name: Inicializar el repositorio restic
+  ansible.builtin.command:
+    cmd: "{{ backup_restic_bin }} init"
+  environment:
+    RESTIC_REPOSITORY: "{{ backup_repo_url }}"
+    RESTIC_PASSWORD_FILE: /etc/restic/password
+  when: not backup_repo_config.stat.exists
+  changed_when: true

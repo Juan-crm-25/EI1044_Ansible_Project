@@ -6,3 +6,6 @@
       - backup_restic_password | length > 0
     fail_msg: "Falta backup_restic_password (debe definirse en Ansible Vault)."
     quiet: true
+
+- name: Instalar restic y preparar el repositorio
+  ansible.builtin.import_tasks: restic.yml
