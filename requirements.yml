@@ -1,0 +1,5 @@
+---
+collections:
+  - name: community.postgresql   # módulos de PostgreSQL (test_backup.yml)
+  - name: community.general      # decompress, para descomprimir restic (rol backup)
+  - name: ansible.posix          # authorized_key, para la clave SSH (rol backup)
