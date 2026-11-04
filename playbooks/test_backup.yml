@@ -1,0 +1,7 @@
+---
+- name: Probar el rol backup
+  hosts: databases
+  become: true
+
+  roles:
+    - backup

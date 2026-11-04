@@ -1,0 +1,8 @@
+---
+- name: Comprobar que la contraseña del repositorio está definida
+  ansible.builtin.assert:
+    that:
+      - backup_restic_password is defined
+      - backup_restic_password | length > 0
+    fail_msg: "Falta backup_restic_password (debe definirse en Ansible Vault)."
+    quiet: true

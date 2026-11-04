@@ -1,0 +1,31 @@
+---
+# --- Repositorio restic (en backup01) ---
+backup_repo_host: backup01
+backup_repo_user: restic
+backup_repo_path: /srv/restic
+backup_repo_url: "sftp:{{ backup_repo_user }}@{{ backup_repo_host }}:{{ backup_repo_path }}"
+
+# Contraseña del repositorio: OBLIGATORIA y secreta (irá en Ansible Vault).
+# No tiene valor por defecto a propósito: si falta, el rol falla.
+# PENDIENTE (Vault): definir backup_restic_password cifrada en
+#   inventory/group_vars/all/vault.yml (db01 debe poder verla) y añadirla a
+#   vault.yml.example. Guardar también una copia de la contraseña FUERA del
+#   repo: si se pierde, todas las copias de seguridad son irrecuperables.
+# backup_restic_password:
+
+# --- Versión de restic (binario oficial) ---
+backup_restic_version: "0.19.1"
+backup_restic_bin: /usr/local/bin/restic
+
+# --- Base de datos a copiar ---
+# PENDIENTE (rol database): sustituir por la variable de ese rol, p. ej. "{{ db_name }}"
+backup_db_name: app
+backup_dump_dir: /var/backups/postgres
+
+# --- Retención ---
+backup_keep_daily: 7
+backup_keep_weekly: 4
+backup_keep_monthly: 6
+
+# --- Programación (formato OnCalendar de systemd): todos los días a las 03:00 ---
+backup_schedule: "*-*-* 03:00:00"
