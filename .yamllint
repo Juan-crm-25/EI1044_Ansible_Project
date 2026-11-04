@@ -1,0 +1,19 @@
+---
+extends: default
+
+# No revisar lo que Git ignora (p. ej. .ansible/, donde ansible-lint instala colecciones)
+ignore-from-file: .gitignore
+
+rules:
+  # Ansible y Jinja2 generan líneas largas: mismo límite que ansible-lint
+  line-length:
+    max: 160
+  # Ajustes que exige ansible-lint para ser compatible con esta configuración
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: false
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true

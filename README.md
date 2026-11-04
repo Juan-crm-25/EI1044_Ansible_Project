@@ -142,6 +142,12 @@ Las máquinas se ven entre sí por su nombre (`db01`, `web01`, `backup01`) dentr
 | `docker exec -it db01 bash` | Entrar en una máquina como root |
 | `ssh -i ~/.ssh/id_ed25519_ansible_lab -p 2202 ansible@127.0.0.1` | Entrar por SSH como Ansible |
 
+### ⚠️ Los servicios no arrancan solos al instalarse
+
+La imagen de Ubuntu para Docker incluye `/usr/sbin/policy-rc.d` con `exit 101`, que impide
+que los paquetes arranquen sus servicios al instalarse (nginx, PostgreSQL...). Los roles
+deben arrancarlos explícitamente, por ejemplo con `ansible.builtin.service` y `state: started`.
+
 ### ⚠️ Concesiones solo de laboratorio
 
 - **Contenedores `privileged`**: systemd lo necesita. Por eso el Dockerfile enmascara
@@ -155,7 +161,19 @@ Las máquinas se ven entre sí por su nombre (`db01`, `web01`, `backup01`) dentr
 
 ## Uso
 
-> 🚧 **Pendiente.** Comandos para desplegar (`site.yml`), lanzar copias (`playbooks/backup.yml`) y restaurar (`playbooks/restore.yml`).
+### Copias de seguridad
+
+```bash
+# Aplicar el rol backup (de momento, con una BD de ejemplo y la contraseña de pruebas)
+ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml
+
+# Lanzar una copia en el momento
+ansible-playbook playbooks/backup.yml
+```
+
+Detalles (variables, secretos, comandos útiles y pendientes) en [`roles/backup/README.md`](roles/backup/README.md).
+
+> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y restaurar (`playbooks/restore.yml`).
 
 ---
 

@@ -1,0 +1,7 @@
+---
+# Perfil más estricto: es el que se exige para dar una tarea por "hecha".
+profile: production
+
+# No es código de Ansible (Docker); yamllint ya revisa su YAML.
+exclude_paths:
+  - lab/

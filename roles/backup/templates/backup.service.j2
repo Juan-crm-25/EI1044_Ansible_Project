@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Copia de seguridad de la base de datos {{ backup_db_name }} con restic
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart={{ backup_script }}
+# systemd no define $HOME: caché de restic propia en /var/cache/restic
+CacheDirectory=restic
+Environment=RESTIC_CACHE_DIR=%C/restic
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,8 @@
+---
+collections:
+  - name: community.postgresql   # módulos de PostgreSQL (test_backup.yml)
+    version: "4.2.0"
+  - name: community.general      # decompress, para descomprimir restic (rol backup)
+    version: "13.5.0"
+  - name: ansible.posix          # authorized_key, para la clave SSH (rol backup)
+    version: "2.2.2"

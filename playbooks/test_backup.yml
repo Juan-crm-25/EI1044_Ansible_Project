@@ -1,0 +1,52 @@
+---
+- name: Probar el rol backup
+  hosts: databases
+  become: true
+
+  # PENDIENTE (rol database): cuando exista el rol database, sustituir estas
+  # pre_tasks por ese rol (roles: [database, backup]) y usar sus datos de ejemplo.
+  pre_tasks:
+    - name: Instalar PostgreSQL y el conector de Python
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - python3-psycopg2
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Asegurar que PostgreSQL está arrancado
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Crear la base de datos de ejemplo
+      community.postgresql.postgresql_db:
+        name: "{{ backup_db_name }}"
+      become: true
+      become_user: postgres
+
+    - name: Crear la tabla de ejemplo
+      community.postgresql.postgresql_table:
+        login_db: "{{ backup_db_name }}"
+        name: clientes
+        columns:
+          - id integer PRIMARY KEY
+          - nombre text NOT NULL
+          - ciudad text NOT NULL
+      become: true
+      become_user: postgres
+
+    - name: Insertar las filas de ejemplo (solo si no existen)
+      community.postgresql.postgresql_query:
+        login_db: "{{ backup_db_name }}"
+        query: >-
+          INSERT INTO clientes (id, nombre, ciudad) VALUES
+          (1, 'Ana', 'Castelló'), (2, 'Luis', 'València'), (3, 'Marta', 'Alacant')
+          ON CONFLICT (id) DO NOTHING
+      become: true
+      become_user: postgres
+
+  roles:
+    - backup

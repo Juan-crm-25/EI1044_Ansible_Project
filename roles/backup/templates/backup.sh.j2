@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Copia de seguridad de la base de datos "{{ backup_db_name }}" con restic.
+set -euo pipefail
+
+# Acceso al repositorio: RESTIC_REPOSITORY y RESTIC_PASSWORD_FILE
+set -a
+source /etc/restic/restic.env
+set +a
+
+RESTIC="{{ backup_restic_bin }}"
+
+echo "1/3 Volcando '{{ backup_db_name }}' y enviándola cifrada al repositorio..."
+"$RESTIC" backup --tag postgres \
+    --stdin-from-command --stdin-filename "{{ backup_db_name }}.dump" -- \
+    runuser -u postgres -- pg_dump --format=custom --compress=0 "{{ backup_db_name }}"
+
+echo "2/3 Aplicando la retención ({{ backup_keep_daily }} diarias, {{ backup_keep_weekly }} semanales, {{ backup_keep_monthly }} mensuales)..."
+"$RESTIC" forget --tag postgres \
+    --keep-daily {{ backup_keep_daily }} \
+    --keep-weekly {{ backup_keep_weekly }} \
+    --keep-monthly {{ backup_keep_monthly }} \
+    --prune
+
+echo "3/3 Comprobando la integridad del repositorio..."
+"$RESTIC" check
+
+echo "Copia completada."
