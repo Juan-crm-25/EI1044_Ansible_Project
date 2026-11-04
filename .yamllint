@@ -1,6 +1,9 @@
 ---
 extends: default
 
+# No revisar lo que Git ignora (p. ej. .ansible/, donde ansible-lint instala colecciones)
+ignore-from-file: .gitignore
+
 rules:
   # Ansible y Jinja2 generan líneas largas: mismo límite que ansible-lint
   line-length:
