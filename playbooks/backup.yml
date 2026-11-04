@@ -1,0 +1,34 @@
+---
+- name: Lanzar una copia de seguridad ahora
+  hosts: databases
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Lanzar la copia y mostrar su registro
+      block:
+        - name: Ejecutar la copia (el mismo servicio que usa el temporizador)
+          ansible.builtin.systemd_service:
+            name: backup-db.service
+            state: started
+
+      always:
+        - name: Obtener el identificador de esta ejecución del servicio
+          ansible.builtin.command: systemctl show backup-db.service --property=InvocationID --value
+          register: backup_invocacion
+          changed_when: false
+
+        - name: Leer el registro de esta ejecución
+          ansible.builtin.command: >-
+            journalctl _SYSTEMD_INVOCATION_ID={{ backup_invocacion.stdout }}
+            --output=cat --no-pager
+          register: backup_registro
+          changed_when: false
+
+        - name: Mostrar el registro de la copia
+          ansible.builtin.debug:
+            var: backup_registro.stdout_lines
+
+    - name: Resumen
+      ansible.builtin.debug:
+        msg: "Copia completada: snapshot {{ backup_registro.stdout | regex_search('snapshot ([0-9a-f]+) saved', '\\1') | first }}"
