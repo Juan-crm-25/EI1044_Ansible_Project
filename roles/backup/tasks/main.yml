@@ -9,3 +9,6 @@
 
 - name: Instalar restic y preparar el repositorio
   ansible.builtin.import_tasks: restic.yml
+
+- name: Instalar el script de copia de la base de datos
+  ansible.builtin.import_tasks: db_dump.yml

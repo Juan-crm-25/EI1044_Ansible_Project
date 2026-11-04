@@ -1,0 +1,8 @@
+---
+- name: Instalar el script de copia de la base de datos
+  ansible.builtin.template:
+    src: backup.sh.j2
+    dest: "{{ backup_script }}"
+    owner: root
+    group: root
+    mode: "0700"

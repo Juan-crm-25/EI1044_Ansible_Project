@@ -24,7 +24,9 @@ backup_restic_arch_map:
 # --- Base de datos a copiar ---
 # PENDIENTE (rol database): sustituir por la variable de ese rol, p. ej. "{{ db_name }}"
 backup_db_name: app
-backup_dump_dir: /var/backups/postgres
+
+# --- Script de copia (lo usan la tarea que lo instala y el servicio de systemd) ---
+backup_script: /usr/local/sbin/backup-db.sh
 
 # --- Retención ---
 backup_keep_daily: 7
