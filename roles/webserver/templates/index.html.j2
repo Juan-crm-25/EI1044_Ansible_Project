@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{{ webserver_title }}</title>
+</head>
+<body>
+  <h1>{{ webserver_title }}</h1>
+  <p>Servidor: {{ inventory_hostname }}
+     ({{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }})</p>
+  <p>Página generada automáticamente por Ansible.</p>
+</body>
+</html>

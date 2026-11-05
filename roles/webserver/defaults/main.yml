@@ -1,0 +1,12 @@
+---
+# Nombre del sitio: para el fichero de configuración de nginx
+webserver_site_name: proyecto
+
+# Puerto en el que escucha nginx dentro de web01
+webserver_port: 80
+
+# Carpeta de ficheros de la web
+webserver_root: "/var/www/{{ webserver_site_name }}"
+
+# Titulo de la página
+webserver_title: "Proyecto Ansible - EI1044"

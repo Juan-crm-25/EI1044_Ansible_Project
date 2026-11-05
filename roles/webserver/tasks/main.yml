@@ -11,3 +11,41 @@
     name: nginx
     state: started
     enabled: true
+
+- name: Crear la carpeta de la web
+  ansible.builtin.file:
+    path: "{{ webserver_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copiar la página principal
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ webserver_root }}/index.html"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Copiar la configuración del sitio
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ webserver_site_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar nginx
+
+- name: Activar el sitio
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ webserver_site_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ webserver_site_name }}.conf"
+    state: link
+  notify: Recargar nginx
+
+- name: Desactivar el sitio por defecto de nginx
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Recargar nginx
