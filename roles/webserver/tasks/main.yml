@@ -1,7 +1,10 @@
 ---
-- name: Instalar nginx
+- name: Instalar nginx y PHP
   ansible.builtin.apt:
-    name: nginx
+    name:
+      - nginx
+      - php-fpm
+      - php-pgsql
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -9,6 +12,12 @@
 - name: Arrancar nginx y habilitarlo al inicio
   ansible.builtin.service:
     name: nginx
+    state: started
+    enabled: true
+
+- name: Arrancar PHP-FPM y habilitarlo al inicio
+  ansible.builtin.service:
+    name: "php{{ webserver_php_version }}-fpm"
     state: started
     enabled: true
 
@@ -49,3 +58,11 @@
     path: /etc/nginx/sites-enabled/default
     state: absent
   notify: Recargar nginx
+
+- name: Copiar la página de clientes
+  ansible.builtin.template:
+    src: clientes.php.j2
+    dest: "{{ webserver_root }}/clientes.php"
+    owner: root
+    group: root
+    mode: "0644"
