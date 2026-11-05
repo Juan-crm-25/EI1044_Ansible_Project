@@ -1,0 +1,33 @@
+---
+# roles/database/defaults/main.yml  (BORRADOR)
+# Variables del rol database. Para cambiarlas, usar
+# inventory/group_vars/databases/main.yml.
+
+# --- Paquetes ---
+# python3-psycopg2: conector que necesitan los módulos community.postgresql.
+# acl: necesario para become_user: postgres sin ser root.
+database_packages:
+  - postgresql
+  - python3-psycopg2
+  - acl
+
+# --- Base de datos y usuario ---
+database_name: app
+database_user: appuser
+database_encoding: UTF8
+
+# Contraseña del usuario.
+# TEMPORAL (solo laboratorio): valor en claro mientras no exista el Vault.
+# PENDIENTE (Vault): definir database_password cifrada en
+#   inventory/group_vars/all/vault.yml, añadirla a vault.yml.example y
+#   ELIMINAR esta línea para que el rol falle si falta (como backup_restic_password).
+database_password: "password"
+
+# --- Datos de ejemplo ---
+# Tabla de ejemplo (la verificación de restore.yml comprueba sus 3 filas).
+database_table: clientes
+
+# Cargar o no las filas de ejemplo. Por defecto NO: al reconstruir db01 la base
+# de datos debe quedar vacía, para que restore.yml demuestre que los datos
+# vuelven desde la copia de seguridad y no desde este rol.
+database_load_sample_data: false

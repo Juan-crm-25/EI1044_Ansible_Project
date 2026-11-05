@@ -1,0 +1,60 @@
+---
+# roles/database/tasks/main.yml  (BORRADOR v2)
+# Instala PostgreSQL, crea usuario, base de datos y tabla.
+# Los datos de ejemplo van aparte (sample_data.yml) y solo se cargan si
+# database_load_sample_data es true.
+
+- name: Instalar PostgreSQL y dependencias
+  ansible.builtin.apt:
+    name: "{{ database_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# En el laboratorio los servicios no arrancan solos al instalarse (policy-rc.d).
+- name: Asegurar que PostgreSQL está activo y habilitado
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Crear el usuario de la aplicación
+  community.postgresql.postgresql_user:
+    name: "{{ database_user }}"
+    password: "{{ database_password }}"
+    state: present
+  become: true
+  become_user: postgres
+  no_log: true
+
+# template0 + locale explícito: el clúster del contenedor puede tener
+# codificación SQL_ASCII (sin locale configurado) y entonces no se podría
+# crear una base de datos UTF8 a partir de template1.
+- name: Crear la base de datos (vacía)
+  community.postgresql.postgresql_db:
+    name: "{{ database_name }}"
+    owner: "{{ database_user }}"
+    encoding: "{{ database_encoding }}"
+    template: template0
+    lc_collate: C.UTF-8
+    lc_ctype: C.UTF-8
+    state: present
+  become: true
+  become_user: postgres
+
+- name: Crear la tabla de ejemplo
+  community.postgresql.postgresql_table:
+    login_db: "{{ database_name }}"
+    name: "{{ database_table }}"
+    owner: "{{ database_user }}"
+    columns:
+      - id integer PRIMARY KEY
+      - nombre text NOT NULL
+      - ciudad text NOT NULL
+    state: present
+  become: true
+  become_user: postgres
+
+- name: Cargar los datos de ejemplo
+  ansible.builtin.include_tasks: sample_data.yml
+  when: database_load_sample_data | bool

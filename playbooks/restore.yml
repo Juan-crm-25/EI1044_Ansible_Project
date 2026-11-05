@@ -17,7 +17,25 @@
         name: backup
         tasks_from: restore
 
-# PENDIENTE (rol database): añadir aquí un play que verifique la base de datos
-# restaurada (por ejemplo, que están los datos de ejemplo conocidos).
+- name: Verificar la base de datos restaurada
+  hosts: databases
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Leer los clientes de la base de datos restaurada
+      community.postgresql.postgresql_query:
+        login_db: "{{ database_name }}"
+        query: "SELECT nombre FROM {{ database_table }} ORDER BY id"
+      become: true
+      become_user: postgres
+      register: database_restore_clientes
+      changed_when: false
+
+    - name: Verificar que están los datos de ejemplo
+      ansible.builtin.assert:
+        that: database_restore_clientes.query_result | map(attribute='nombre') | list == ['Ana', 'Luis', 'Marta']
+        success_msg: "{{ inventory_hostname }}: la base de datos {{ database_name }} se ha restaurado con los 3 clientes de ejemplo"
+        fail_msg: "Los datos restaurados no son los esperados: {{ database_restore_clientes.query_result }}"
 
 # PENDIENTE (rol webserver): añadir aquí un play que verifique que la web responde.
