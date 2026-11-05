@@ -1,0 +1,7 @@
+---
+- name: Probar el rol webserver
+  hosts: webservers
+  become: true
+  roles:
+    - webserver
+    
