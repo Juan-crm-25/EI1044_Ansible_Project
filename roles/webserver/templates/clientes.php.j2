@@ -1,5 +1,25 @@
 <?php
 // {{ ansible_managed }}
+// Lee la tabla clientes de la base de datos y la muestra en una tabla HTML.
+
+// 1. Datos de conexión: fuera de la carpeta pública (ver db.ini)
+$cfg = parse_ini_file('{{ webserver_db_config }}');
+
+// 2. Conectar con PostgreSQL (la @ evita que PHP muestre el error en la página)
+$conexion = @pg_connect(sprintf(
+    'host=%s port=%s dbname=%s user=%s password=%s connect_timeout=5',
+    $cfg['host'], $cfg['port'], $cfg['dbname'], $cfg['user'], $cfg['password']
+));
+
+// 3. Leer los clientes (si no hay conexión, se queda en false)
+$clientes = $conexion
+    ? pg_fetch_all(pg_query($conexion, 'SELECT id, nombre, ciudad FROM clientes ORDER BY id'))
+    : false;
+
+// 4. Si algo ha fallado, responder con un código de error HTTP
+if ($clientes === false) {
+    http_response_code(500);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -9,6 +29,21 @@
 </head>
 <body>
   <h1>Clientes</h1>
-  <p>PHP <?= PHP_VERSION ?> funcionando en <?= gethostname() ?>.</p>
+<?php if ($clientes === false): ?>
+  <p>Error: no se ha podido leer la base de datos.</p>
+<?php else: ?>
+  <table border="1">
+    <tr><th>Id</th><th>Nombre</th><th>Ciudad</th></tr>
+<?php foreach ($clientes as $c): ?>
+    <tr>
+      <td><?= htmlspecialchars($c['id']) ?></td>
+      <td><?= htmlspecialchars($c['nombre']) ?></td>
+      <td><?= htmlspecialchars($c['ciudad']) ?></td>
+    </tr>
+<?php endforeach; ?>
+  </table>
+<?php endif; ?>
+  <p>Datos leídos de {{ webserver_db_host }} desde <?= gethostname() ?>.</p>
+  <p><a href="/">Volver</a></p>
 </body>
 </html>
