@@ -1,0 +1,16 @@
+---
+# Zona horaria de todas las máquinas
+common_timezone: Europe/Madrid
+
+# Locale del sistema
+common_locale: es_ES.UTF-8
+
+# Paquetes base (chrony es el cliente de sincronización de hora)
+common_packages:
+  - ca-certificates
+  - curl
+  - tzdata
+  - locales
+  - chrony
+  - vim
+  - htop
