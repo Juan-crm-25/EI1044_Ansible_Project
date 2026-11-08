@@ -1,0 +1,39 @@
+---
+name: Lint
+
+# "on" va entre comillas para que yamllint no lo tome por un booleano.
+"on":
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar las herramientas
+        run: pip install -r requirements.txt
+
+      - name: Preparar la contraseña de Vault
+        env:
+          VAULT_PASS: ${{ secrets.VAULT_PASS }}
+        run: |
+          umask 077
+          printf '%s\n' "$VAULT_PASS" > .vault_pass
+
+      - name: yamllint
+        run: yamllint .
+
+      - name: ansible-lint
+        run: >
+          ansible-lint roles/common roles/backup site.yml
+          playbooks/backup.yml playbooks/restore.yml
+          playbooks/test_backup.yml playbooks/test_common.yml
