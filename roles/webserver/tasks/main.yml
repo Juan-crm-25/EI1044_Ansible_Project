@@ -59,6 +59,24 @@
     state: absent
   notify: Recargar nginx
 
+
+- name: Crear la carpeta de configuración de la web
+  ansible.builtin.file:
+    path: "{{ webserver_db_config | dirname }}"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0750"
+
+- name: Copiar los datos de conexión con la base de datos
+  ansible.builtin.template:
+    src: db.ini.j2
+    dest: "{{ webserver_db_config }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+  no_log: true
+
 - name: Copiar la página de clientes
   ansible.builtin.template:
     src: clientes.php.j2

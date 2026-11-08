@@ -16,3 +16,15 @@ webserver_php_version: "8.1"
 
 # Socket por el que nginx le pasa las peticiones .php a PHP-FPM
 webserver_php_fpm_socket: "/run/php/php{{ webserver_php_version }}-fpm.sock"
+
+
+# Fichero con los datos de conexión a la BD (fuera de la carpeta pública)
+webserver_db_config: "/etc/{{ webserver_site_name }}/db.ini"
+
+# Datos de conexión: por defecto, las variables compartidas de group_vars/all
+webserver_db_host: "{{ db_host }}"
+webserver_db_port: "{{ db_port }}"
+webserver_db_name: "{{ db_name }}"
+webserver_db_user: "{{ db_user }}"
+# Secreta: vendrá de Vault (de momento, de ~/.ansible-lab-secrets.yml)
+webserver_db_password: "{{ db_password }}"
