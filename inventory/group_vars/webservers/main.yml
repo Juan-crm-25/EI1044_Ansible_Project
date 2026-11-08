@@ -1,0 +1,6 @@
+---
+# Variables del grupo webservers (web01).
+# El rol webserver funciona con sus valores por defecto (roles/webserver/defaults/main.yml).
+# Aquí se sobrescriben solo si hace falta, sin tocar el rol. Por ejemplo:
+#   webserver_title: "Mi web"
+#   webserver_site_name: tienda
