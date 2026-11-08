@@ -1,0 +1,24 @@
+---
+# Despliegue completo. Los roles que aún no existen están comentados:
+# descoméntalos según entren en main. Orden: base, BD, web, copias.
+- name: Configuración base de todas las máquinas
+  hosts: all
+  roles:
+    - common
+
+# - name: Base de datos
+#   hosts: databases
+#   roles:
+#     - database
+
+# - name: Servidor web
+#   hosts: webservers
+#   roles:
+#     - webserver
+
+# El rol backup se aplica a db01; él mismo prepara también backup01.
+# Requiere el rol database (necesita PostgreSQL) y backup_restic_password en el Vault.
+# - name: Copias de seguridad
+#   hosts: databases
+#   roles:
+#     - backup
