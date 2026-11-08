@@ -20,7 +20,7 @@ Las copias van cifradas, con retención de **7 diarias, 4 semanales y 6 mensuale
 
 | Parte | Responsable |
 |-------|-------------|
-| Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | _Pendiente_ |
+| Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | Jose Manuel |
 | Rol `webserver` | _Pendiente_ |
 | Rol `database` | _Pendiente_ |
 | Rol `backup` | Juan Carmona |
@@ -97,7 +97,13 @@ ansible-config dump --only-changed -t all   # opciones leídas de ansible.cfg
 
 - **Nunca** se suben a Git la contraseña de Ansible Vault (`.vault_pass`) ni las claves SSH del laboratorio (`lab/ssh/*`).
 - La contraseña de Vault se comparte por un canal privado del equipo.
-- 🚧 **Pendiente:** configuración de Ansible Vault (`vault.yml` cifrado + `vault.yml.example`).
+- Los secretos (contraseña del repositorio restic y de PostgreSQL) están en
+  `inventory/group_vars/all/vault.yml`, **siempre cifrado** 
+  `vault.yml.example` muestra qué variables contiene.
+- Tras clonar, crea tu `.vault_pass` con la contraseña que te pase el equipo:
+  `umask 077 && printf '%s\n' 'LA_CONTRASEÑA' > .vault_pass`.
+  Sin él, Ansible falla porque `ansible.cfg` apunta a ese fichero.
+- Editar el Vault: `ansible-vault edit inventory/group_vars/all/vault.yml`.
 
 ---
 
@@ -177,8 +183,10 @@ ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
 Detalles (variables, secretos, escenario de la demo, comandos útiles y pendientes) en
 [`roles/backup/README.md`](roles/backup/README.md).
 
-> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y las verificaciones de `restore.yml`
-> de los roles `database` y `webserver`.
+### Despliegue completo
+
+    ansible-playbook site.yml
+    ansible-playbook site.yml    # la segunda ejecución debe dar changed=0
 
 ---
 
@@ -205,6 +213,9 @@ proyecto-ansible/
 ## Forma de trabajo
 
 - Cada tarea se hace en su propia rama (`feature/...`) y llega a `main` mediante una **Pull Request** que el propio autor rellena con la plantilla y fusiona. No hay revisor: la PR sirve para que cada uno repase lo que ha hecho y para dejar explicado en el historial qué cambió y por qué.
-- Variables con prefijo por rol: `web_`, `db_`, `backup_`. Las compartidas, en `inventory/group_vars/all/main.yml`.
+- Dentro de cada rol, las variables llevan el nombre completo del rol como prefijo
+  (`common_`, `webserver_`, `database_`, `backup_`), porque `ansible-lint` lo exige.
+  Las compartidas entre roles (`db_host`, `db_name`...) se definen en
+  `inventory/group_vars/all/main.yml` apuntando a las del rol `database` (`db_host: "{{ database_host }}"`).
 - Una tarea está **hecha** cuando funciona sobre un laboratorio limpio, es idempotente (`changed=0` en la segunda ejecución), pasa `yamllint` y `ansible-lint` y tiene el README del rol actualizado.
-- 🚧 **Pendiente:** detalles en [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- Detalles en [CONTRIBUTING.md](CONTRIBUTING.md).
