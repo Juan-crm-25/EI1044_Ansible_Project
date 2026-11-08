@@ -1,0 +1,86 @@
+---
+- name: Instalar nginx y PHP
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - php-fpm
+      - php-pgsql
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Arrancar nginx y habilitarlo al inicio
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Arrancar PHP-FPM y habilitarlo al inicio
+  ansible.builtin.service:
+    name: "php{{ webserver_php_version }}-fpm"
+    state: started
+    enabled: true
+
+- name: Crear la carpeta de la web
+  ansible.builtin.file:
+    path: "{{ webserver_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copiar la página principal
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ webserver_root }}/index.html"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Copiar la configuración del sitio
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ webserver_site_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar nginx
+
+- name: Activar el sitio
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ webserver_site_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ webserver_site_name }}.conf"
+    state: link
+  notify: Recargar nginx
+
+- name: Desactivar el sitio por defecto de nginx
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Recargar nginx
+
+
+- name: Crear la carpeta de configuración de la web
+  ansible.builtin.file:
+    path: "{{ webserver_db_config | dirname }}"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0750"
+
+- name: Copiar los datos de conexión con la base de datos
+  ansible.builtin.template:
+    src: db.ini.j2
+    dest: "{{ webserver_db_config }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+  no_log: true
+
+- name: Copiar la página de clientes
+  ansible.builtin.template:
+    src: clientes.php.j2
+    dest: "{{ webserver_root }}/clientes.php"
+    owner: root
+    group: root
+    mode: "0644"
