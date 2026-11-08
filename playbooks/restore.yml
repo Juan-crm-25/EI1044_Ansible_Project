@@ -20,4 +20,26 @@
 # PENDIENTE (rol database): añadir aquí un play que verifique la base de datos
 # restaurada (por ejemplo, que están los datos de ejemplo conocidos).
 
-# PENDIENTE (rol webserver): añadir aquí un play que verifique que la web responde.
+- name: Verificar que la web responde y muestra los datos restaurados
+  hosts: webservers
+  gather_facts: false
+
+  tasks:
+    - name: Pedir la página de clientes
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/clientes.php"
+        return_content: true
+        status_code: 200
+      register: webserver_verificacion
+      until: webserver_verificacion.status == 200
+      retries: 5
+      delay: 3
+
+    - name: Comprobar que aparecen los clientes de ejemplo
+      ansible.builtin.assert:
+        that:
+          - "'Ana' in webserver_verificacion.content"
+          - "'Luis' in webserver_verificacion.content"
+          - "'Marta' in webserver_verificacion.content"
+        fail_msg: "La web responde, pero no muestra los clientes restaurados."
+        success_msg: "La web responde y muestra los clientes restaurados."
