@@ -1,5 +1,5 @@
 ---
-# roles/database/meta/main.yml  (BORRADOR)
+# roles/database/meta/main.yml
 galaxy_info:
   author: Joel Gil Juan
   description: >-

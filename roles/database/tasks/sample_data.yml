@@ -1,5 +1,5 @@
 ---
-# roles/database/tasks/sample_data.yml  (BORRADOR)
+# roles/database/tasks/sample_data.yml
 # Filas de ejemplo conocidas. Solo se incluye desde main.yml si
 # database_load_sample_data es true. restore.yml verifica estas 3 filas.
 

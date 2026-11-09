@@ -1,8 +1,19 @@
 ---
-# roles/database/tasks/main.yml  (BORRADOR v2)
-# Instala PostgreSQL, crea usuario, base de datos y tabla.
+# roles/database/tasks/main.yml
+# Instala PostgreSQL, lo prepara para que la web se conecte por la red, y crea
+# usuario, base de datos y tabla.
 # Los datos de ejemplo van aparte (sample_data.yml) y solo se cargan si
 # database_load_sample_data es true.
+
+# La tarea que crea el usuario lleva no_log: si faltara la contraseña, el error
+# saldría oculto. Así falla al principio con un mensaje claro.
+- name: Comprobar que la contraseña de la base de datos está definida
+  ansible.builtin.assert:
+    that:
+      - db_password is defined
+      - db_password | length > 0
+    fail_msg: "Falta db_password: añádela a ~/.ansible-lab-secrets.yml (luego irá en Ansible Vault)"
+    quiet: true
 
 - name: Instalar PostgreSQL y dependencias
   ansible.builtin.apt:
@@ -10,6 +21,30 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
+
+# Antes de arrancar el servicio: así PostgreSQL lee este valor al iniciarse y no
+# hace falta reiniciarlo. Ubuntu incluye conf.d desde postgresql.conf.
+- name: Configurar PostgreSQL para escuchar por la red
+  ansible.builtin.copy:
+    dest: "/etc/postgresql/{{ database_pg_version }}/main/conf.d/red.conf"
+    content: |
+      # Gestionado por Ansible (rol database)
+      listen_addresses = '{{ database_listen_addresses }}'
+    owner: postgres
+    group: postgres
+    mode: "0644"
+
+# Solo este usuario, a esta base de datos, desde la red del laboratorio y con
+# contraseña. Las reglas locales (peer de postgres, que usa backup) no se tocan.
+- name: Permitir conexiones por la red con contraseña
+  community.postgresql.postgresql_pg_hba:
+    dest: "/etc/postgresql/{{ database_pg_version }}/main/pg_hba.conf"
+    contype: host
+    databases: "{{ database_name }}"
+    users: "{{ database_user }}"
+    source: "{{ database_allowed_network }}"
+    method: scram-sha-256
+    state: present
 
 # En el laboratorio los servicios no arrancan solos al instalarse (policy-rc.d).
 - name: Asegurar que PostgreSQL está activo y habilitado

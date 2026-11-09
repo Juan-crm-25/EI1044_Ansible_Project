@@ -1,5 +1,5 @@
 ---
-# roles/database/defaults/main.yml  (BORRADOR)
+# roles/database/defaults/main.yml
 # Variables del rol database. Para cambiarlas, usar
 # inventory/group_vars/databases/main.yml.
 
@@ -16,12 +16,23 @@ database_name: app
 database_user: appuser
 database_encoding: UTF8
 
-# Contraseña del usuario.
-# TEMPORAL (solo laboratorio): valor en claro mientras no exista el Vault.
-# PENDIENTE (Vault): definir database_password cifrada en
-#   inventory/group_vars/all/vault.yml, añadirla a vault.yml.example y
-#   ELIMINAR esta línea para que el rol falle si falta (como backup_restic_password).
-database_password: "password"
+# Contraseña del usuario. Es la MISMA que usa la web (variable compartida
+# db_password), así los dos roles no pueden quedar desincronizados.
+# No tiene valor aquí: hoy viene de ~/.ansible-lab-secrets.yml y, más
+# adelante, de inventory/group_vars/all/vault.yml (Ansible Vault).
+database_password: "{{ db_password }}"
+
+# --- Red ---
+# Versión de PostgreSQL de Ubuntu 22.04. Se usa para la ruta de su configuración.
+database_pg_version: 14
+
+# Direcciones en las que escucha PostgreSQL. "*" = todas las interfaces de db01.
+# Por defecto solo escucha en localhost, y web01 no podría conectar.
+database_listen_addresses: "*"
+
+# Desde qué red se permite conectar por TCP. "samenet" = cualquier IP de la
+# misma subred que db01 (la red del laboratorio, donde está web01).
+database_allowed_network: samenet
 
 # --- Datos de ejemplo ---
 # Tabla de ejemplo (la verificación de restore.yml comprueba sus 3 filas).

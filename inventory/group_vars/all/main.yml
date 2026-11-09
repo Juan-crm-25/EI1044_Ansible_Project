@@ -4,5 +4,5 @@
 db_host: db01
 db_port: 5432
 db_name: app
-db_user: app
+db_user: appuser
 # La contraseña (db_password) NO va aquí: irá cifrada en vault.yml (Ansible Vault).

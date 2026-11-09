@@ -1,8 +1,8 @@
 ---
-# playbooks/test_database.yml  (BORRADOR)
+# playbooks/test_database.yml
 # Aplica solo el rol database sobre db01 y comprueba que los datos de ejemplo
 # están. Uso (ver README del rol):
-#   ansible-playbook playbooks/test_database.yml
+#   ansible-playbook playbooks/test_database.yml -e @~/.ansible-lab-secrets.yml
 
 - name: Probar el rol database
   hosts: databases
