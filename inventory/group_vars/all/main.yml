@@ -1,0 +1,8 @@
+---
+# Variables compartidas entre roles (acordadas por el grupo).
+# Conexión con la base de datos: las usan los roles database, webserver y backup.
+db_host: db01
+db_port: 5432
+db_name: app
+db_user: app
+# La contraseña (db_password) NO va aquí: irá cifrada en vault.yml (Ansible Vault).

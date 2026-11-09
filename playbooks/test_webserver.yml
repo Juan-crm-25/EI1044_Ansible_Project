@@ -1,0 +1,107 @@
+---
+# PENDIENTE (rol database): este primer play es PROVISIONAL. Prepara en db01 una
+# base de datos de ejemplo que acepta conexiones de web01. Cuando exista el rol
+# database, sustituir este play por ese rol.
+#
+#   ansible-playbook playbooks/test_webserver.yml -e @~/.ansible-lab-secrets.yml
+
+- name: Preparar una base de datos provisional en db01
+  hosts: databases
+  become: true
+
+  tasks:
+    - name: Instalar PostgreSQL y el conector de Python
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - python3-psycopg2
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Arrancar PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Escuchar conexiones por la red
+      community.postgresql.postgresql_alter_system:
+        param: listen_addresses
+        value: "*"
+      become: true
+      become_user: postgres
+      notify: Reiniciar PostgreSQL
+
+    - name: Permitir que la web se conecte con contraseña
+      community.postgresql.postgresql_pg_hba:
+        dest: /etc/postgresql/14/main/pg_hba.conf
+        contype: host
+        databases: "{{ db_name }}"
+        users: "{{ db_user }}"
+        source: samenet
+        method: scram-sha-256
+      notify: Recargar PostgreSQL
+
+    - name: Crear el usuario de la aplicación
+      community.postgresql.postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+      become: true
+      become_user: postgres
+      no_log: true
+
+    - name: Crear la base de datos
+      community.postgresql.postgresql_db:
+        name: "{{ db_name }}"
+      become: true
+      become_user: postgres
+
+    - name: Crear la tabla de ejemplo
+      community.postgresql.postgresql_table:
+        login_db: "{{ db_name }}"
+        name: clientes
+        columns:
+          - id integer PRIMARY KEY
+          - nombre text NOT NULL
+          - ciudad text NOT NULL
+      become: true
+      become_user: postgres
+
+    - name: Insertar las filas de ejemplo (solo si no existen)
+      community.postgresql.postgresql_query:
+        login_db: "{{ db_name }}"
+        query: >-
+          INSERT INTO clientes (id, nombre, ciudad) VALUES
+          (1, 'Ana', 'Castelló'), (2, 'Luis', 'València'), (3, 'Marta', 'Alacant')
+          ON CONFLICT (id) DO NOTHING
+      become: true
+      become_user: postgres
+
+    - name: Dar permiso de lectura sobre la tabla al usuario de la aplicación
+      community.postgresql.postgresql_privs:
+        login_db: "{{ db_name }}"
+        roles: "{{ db_user }}"
+        type: table
+        objs: clientes
+        privs: SELECT
+      become: true
+      become_user: postgres
+
+  handlers:
+    - name: Reiniciar PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted
+
+    - name: Recargar PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: reloaded
+
+- name: Probar el rol webserver
+  hosts: webservers
+  become: true
+
+  roles:
+    - webserver

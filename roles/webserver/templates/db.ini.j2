@@ -1,0 +1,7 @@
+; {{ ansible_managed }}
+; Datos de conexión con la base de datos. Solo lo leen root y PHP-FPM (www-data).
+host = "{{ webserver_db_host }}"
+port = "{{ webserver_db_port }}"
+dbname = "{{ webserver_db_name }}"
+user = "{{ webserver_db_user }}"
+password = "{{ webserver_db_password }}"

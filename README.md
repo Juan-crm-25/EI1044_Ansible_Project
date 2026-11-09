@@ -21,7 +21,7 @@ Las copias van cifradas, con retención de **7 diarias, 4 semanales y 6 mensuale
 | Parte | Responsable |
 |-------|-------------|
 | Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | _Pendiente_ |
-| Rol `webserver` | _Pendiente_ |
+| Rol `webserver` | Francisco Doñate |
 | Rol `database` | _Pendiente_ |
 | Rol `backup` | Juan Carmona |
 | `restore.yml` | Los cuatro (cada uno su parte de verificación) |
