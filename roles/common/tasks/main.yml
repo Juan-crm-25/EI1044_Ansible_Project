@@ -41,4 +41,4 @@
     name: chrony
     state: started
     enabled: true
-  when: ansible_virtualization_type | default('') != 'docker'
+  when: ansible_facts['virtualization_type'] | default('') != 'docker'

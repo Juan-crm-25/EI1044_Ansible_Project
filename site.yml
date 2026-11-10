@@ -3,22 +3,25 @@
 # descoméntalos según entren en main. Orden: base, BD, web, copias.
 - name: Configuración base de todas las máquinas
   hosts: all
+  become: true
   roles:
     - common
 
-# - name: Base de datos
-#   hosts: databases
-#   roles:
-#     - database
+- name: Base de datos
+  hosts: databases
+  become: true
+  roles:
+    - database
 
-# - name: Servidor web
-#   hosts: webservers
-#   roles:
-#     - webserver
+- name: Servidor web
+  hosts: webservers
+  become: true
+  roles:
+    - webserver
 
 # El rol backup se aplica a db01; él mismo prepara también backup01.
-# Requiere el rol database (necesita PostgreSQL) y backup_restic_password en el Vault.
-# - name: Copias de seguridad
-#   hosts: databases
-#   roles:
-#     - backup
+- name: Copias de seguridad
+  hosts: databases
+  become: true
+  roles:
+    - backup

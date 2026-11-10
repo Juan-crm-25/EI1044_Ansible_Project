@@ -34,6 +34,7 @@ jobs:
 
       - name: ansible-lint
         run: >
-          ansible-lint roles/common roles/backup site.yml
+          ansible-lint roles/common roles/database roles/webserver roles/backup site.yml
           playbooks/backup.yml playbooks/restore.yml
-          playbooks/test_backup.yml playbooks/test_common.yml
+          playbooks/test_common.yml playbooks/test_database.yml
+          playbooks/test_webserver.yml playbooks/test_backup.yml

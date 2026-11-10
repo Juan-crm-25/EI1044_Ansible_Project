@@ -20,8 +20,13 @@ Las copias van cifradas, con retención de **7 diarias, 4 semanales y 6 mensuale
 
 | Parte | Responsable |
 |-------|-------------|
+<<<<<<< HEAD
 | Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | Jose Manuel |
 | Rol `webserver` | _Pendiente_ |
+=======
+| Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | _Pendiente_ |
+| Rol `webserver` | Francisco Doñate |
+>>>>>>> feature/ci
 | Rol `database` | _Pendiente_ |
 | Rol `backup` | Juan Carmona |
 | `restore.yml` | Los cuatro (cada uno su parte de verificación) |
@@ -183,10 +188,15 @@ ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
 Detalles (variables, secretos, escenario de la demo, comandos útiles y pendientes) en
 [`roles/backup/README.md`](roles/backup/README.md).
 
+<<<<<<< HEAD
 ### Despliegue completo
 
     ansible-playbook site.yml
     ansible-playbook site.yml    # la segunda ejecución debe dar changed=0
+=======
+> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y la verificación de `restore.yml`
+> del rol `webserver`.
+>>>>>>> feature/ci
 
 ---
 
@@ -213,9 +223,11 @@ proyecto-ansible/
 ## Forma de trabajo
 
 - Cada tarea se hace en su propia rama (`feature/...`) y llega a `main` mediante una **Pull Request** que el propio autor rellena con la plantilla y fusiona. No hay revisor: la PR sirve para que cada uno repase lo que ha hecho y para dejar explicado en el historial qué cambió y por qué.
-- Dentro de cada rol, las variables llevan el nombre completo del rol como prefijo
-  (`common_`, `webserver_`, `database_`, `backup_`), porque `ansible-lint` lo exige.
-  Las compartidas entre roles (`db_host`, `db_name`...) se definen en
-  `inventory/group_vars/all/main.yml` apuntando a las del rol `database` (`db_host: "{{ database_host }}"`).
+<<<<<<< HEAD
+- Dentro de cada rol, - Las variables compartidas entre roles (`db_host`, `db_port`, `db_name`, `db_user`) tienen su valor directamente en `inventory/group_vars/all/main.yml` 
+(sin prefijo de rol, porque esa regla solo se aplica dentro de los roles) y la contraseña (`db_password`) está en el Vault. Cada rol las enlaza a las suyas, por ejemplo `database_password: "{{ db_password }}"` o `webserver_db_host: "{{ db_host }}"`.
+=======
+- Variables con el nombre del rol como prefijo (lo exige `ansible-lint`): `webserver_`, `database_`, `backup_`. Las compartidas, en `inventory/group_vars/all/main.yml`.
+>>>>>>> feature/ci
 - Una tarea está **hecha** cuando funciona sobre un laboratorio limpio, es idempotente (`changed=0` en la segunda ejecución), pasa `yamllint` y `ansible-lint` y tiene el README del rol actualizado.
 - Detalles en [CONTRIBUTING.md](CONTRIBUTING.md).
