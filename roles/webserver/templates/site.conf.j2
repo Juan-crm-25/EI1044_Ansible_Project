@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+server {
+    listen {{ webserver_port }} default_server;
+    server_name _;
+
+    root {{ webserver_root }};
+    index index.html index.php;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Las peticiones a ficheros .php se pasan a PHP-FPM
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:{{ webserver_php_fpm_socket }};
+    }
+}

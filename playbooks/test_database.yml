@@ -1,0 +1,32 @@
+---
+# playbooks/test_database.yml
+# Aplica solo el rol database sobre db01 y comprueba que los datos de ejemplo
+# están. Uso (ver README del rol):
+#   ansible-playbook playbooks/test_database.yml -e @~/.ansible-lab-secrets.yml
+
+- name: Probar el rol database
+  hosts: databases
+  become: true
+
+  vars:
+    # En las pruebas sí se cargan los datos de ejemplo (por defecto no).
+    database_load_sample_data: true
+
+  roles:
+    - database
+
+  post_tasks:
+    - name: Leer los clientes de ejemplo
+      community.postgresql.postgresql_query:
+        login_db: "{{ database_name }}"
+        query: "SELECT nombre FROM {{ database_table }} ORDER BY id"
+      become: true
+      become_user: postgres
+      register: database_test_clientes
+      changed_when: false
+
+    - name: Verificar que están los datos de ejemplo
+      ansible.builtin.assert:
+        that: database_test_clientes.query_result | map(attribute='nombre') | list == ['Ana', 'Luis', 'Marta']
+        success_msg: "{{ inventory_hostname }}: la base de datos {{ database_name }} contiene los 3 clientes de ejemplo"
+        fail_msg: "Los datos de ejemplo no son los esperados: {{ database_test_clientes.query_result }}"
