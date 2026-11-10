@@ -1,0 +1,15 @@
+---
+# inventory/group_vars/databases/main.yml
+# Valores de proyecto para el grupo "databases" (db01). Tienen prioridad sobre
+# los valores por defecto de roles/database/defaults/main.yml.
+# El resto de variables database_* (paquetes, codificación...) se dejan en los defaults.
+
+# Base de datos y usuario de la aplicación.
+database_name: app
+database_user: appuser
+
+# Tabla de ejemplo (restore.yml verifica sus 3 filas).
+database_table: clientes
+
+# La contraseña no se define aquí: el rol usa la variable compartida db_password
+# (hoy en ~/.ansible-lab-secrets.yml; irá cifrada en group_vars/all/vault.yml).

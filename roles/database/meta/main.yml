@@ -1,0 +1,18 @@
+---
+# roles/database/meta/main.yml
+galaxy_info:
+  author: Joel Gil Juan
+  description: >-
+    Servidor de base de datos PostgreSQL: instalación, usuario, base de datos
+    y tabla de ejemplo, con carga opcional de datos de ejemplo.
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+  galaxy_tags:
+    - database
+    - postgresql
+
+dependencies: []
