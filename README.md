@@ -21,7 +21,7 @@ Las copias van cifradas, con retención de **7 diarias, 4 semanales y 6 mensuale
 | Parte | Responsable |
 |-------|-------------|
 | Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | _Pendiente_ |
-| Rol `webserver` | _Pendiente_ |
+| Rol `webserver` | Francisco Doñate |
 | Rol `database` | _Pendiente_ |
 | Rol `backup` | Juan Carmona |
 | `restore.yml` | Los cuatro (cada uno su parte de verificación) |
@@ -177,8 +177,8 @@ ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
 Detalles (variables, secretos, escenario de la demo, comandos útiles y pendientes) en
 [`roles/backup/README.md`](roles/backup/README.md).
 
-> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y las verificaciones de `restore.yml`
-> de los roles `database` y `webserver`.
+> 🚧 **Pendiente.** Comandos para desplegar todo (`site.yml`) y la verificación de `restore.yml`
+> del rol `webserver`.
 
 ---
 
@@ -205,6 +205,6 @@ proyecto-ansible/
 ## Forma de trabajo
 
 - Cada tarea se hace en su propia rama (`feature/...`) y llega a `main` mediante una **Pull Request** que el propio autor rellena con la plantilla y fusiona. No hay revisor: la PR sirve para que cada uno repase lo que ha hecho y para dejar explicado en el historial qué cambió y por qué.
-- Variables con prefijo por rol: `web_`, `db_`, `backup_`. Las compartidas, en `inventory/group_vars/all/main.yml`.
+- Variables con el nombre del rol como prefijo (lo exige `ansible-lint`): `webserver_`, `database_`, `backup_`. Las compartidas, en `inventory/group_vars/all/main.yml`.
 - Una tarea está **hecha** cuando funciona sobre un laboratorio limpio, es idempotente (`changed=0` en la segunda ejecución), pasa `yamllint` y `ansible-lint` y tiene el README del rol actualizado.
 - 🚧 **Pendiente:** detalles en [`CONTRIBUTING.md`](CONTRIBUTING.md).

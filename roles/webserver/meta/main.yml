@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: Francisco Doñate
+  description: >-
+    Servidor web nginx con PHP-FPM: sitio generado con plantillas Jinja2,
+    recarga validada con nginx -t y página que lee los clientes de PostgreSQL.
+  license: MIT
+  min_ansible_version: "2.21"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+  galaxy_tags:
+    - web
+    - nginx
+    - php
+    - postgresql
+
+dependencies: []
