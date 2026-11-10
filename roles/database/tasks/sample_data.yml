@@ -1,0 +1,16 @@
+---
+# roles/database/tasks/sample_data.yml
+# Filas de ejemplo conocidas. Solo se incluye desde main.yml si
+# database_load_sample_data es true. restore.yml verifica estas 3 filas.
+
+- name: Insertar las filas de ejemplo (solo si no existen)
+  community.postgresql.postgresql_query:
+    login_db: "{{ database_name }}"
+    query: >-
+      INSERT INTO {{ database_table }} (id, nombre, ciudad) VALUES
+      (1, 'Ana', 'Castelló'), (2, 'Luis', 'València'), (3, 'Marta', 'Alacant')
+      ON CONFLICT (id) DO NOTHING
+  become: true
+  become_user: postgres
+  register: database_filas_ejemplo
+  changed_when: database_filas_ejemplo.rowcount | default(0) > 0

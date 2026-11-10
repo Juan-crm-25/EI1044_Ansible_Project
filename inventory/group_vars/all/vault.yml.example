@@ -3,4 +3,4 @@
 #   ansible-vault encrypt inventory/group_vars/all/vault.yml
 # Nunca subir vault.yml sin cifrar.
 backup_restic_password: "68df4ghb6dc4bg684sd98gf4h54sdf154g="
-database_password: "5fg4j5fg4154544544544dr4t4h54dfg="
+db_password: "5fg4j5fg4154544544544dr4t4h54dfg="
