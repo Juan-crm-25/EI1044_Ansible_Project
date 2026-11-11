@@ -4,7 +4,7 @@ Automatización con **Ansible** de una pequeña infraestructura web con copias d
 
 | Máquina    | Función                                        |
 |------------|------------------------------------------------|
-| `web01`    | Servidor web **nginx** con página generada con plantillas Jinja2 |
+| `web01`    | Servidor web **nginx** con PHP-FPM, página generada con plantillas Jinja2 y una página que lista los clientes de la base de datos |
 | `db01`     | Base de datos **PostgreSQL** (usuario, base de datos y datos de ejemplo) |
 | `backup01` | Repositorio de copias de seguridad con **restic** |
 
@@ -16,11 +16,9 @@ Las copias van cifradas, con retención de **7 diarias, 4 semanales y 6 mensuale
 
 ## Equipo y reparto
 
-> 🚧 **Pendiente:** completar con los nombres del equipo.
-
 | Parte | Responsable |
 |-------|-------------|
-| Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint) | Jose Manuel |
+| Rol `common` + coordinación (repo, inventario, `site.yml`, Vault, lint, CI y documentación) | Jose Manuel |
 | Rol `webserver` | Francisco Doñate |
 | Rol `database` | Joel Gil |
 | Rol `backup` | Juan Carmona |
@@ -36,6 +34,7 @@ Un sistema **Linux** (probado en **Ubuntu**) con Python 3 y `pipx` o `venv`.
 
 - Clonar el repositorio en una carpeta propia del usuario (por ejemplo, `~/`). Ansible **ignora** el `ansible.cfg` si la carpeta tiene permisos de escritura para todos (por ejemplo, `/tmp` o discos externos y de otros sistemas montados).
 - **Docker Engine** con el plugin **Docker Compose** (`docker compose`), y el usuario en el grupo `docker` (`sudo usermod -aG docker $USER` y volver a iniciar sesión).
+- **En Windows:** WSL2 con Ubuntu y Docker Desktop con la integración WSL activada. Clonar dentro de WSL (`~`), no en `/mnt/c`, y configurar `git config --global core.autocrlf input`. Con saltos de línea de Windows (CRLF), `yamllint` falla y los scripts de las plantillas no funcionan en los contenedores.
 
 ### Versiones de las herramientas
 
@@ -87,8 +86,13 @@ ansible-config dump --only-changed -t all   # opciones leídas de ansible.cfg
 
 | Fichero          | Para qué sirve |
 |------------------|----------------|
-| `ansible.cfg`    | Configuración común de Ansible: inventario, ruta de roles, usuario remoto `ansible`, salida en YAML y optimizaciones de SSH (pipelining, reutilización de conexiones). |
+| `ansible.cfg`    | Configuración común de Ansible: inventario, ruta de roles, usuario remoto `ansible`, contraseña del Vault (`vault_password_file`), salida en YAML y optimizaciones de SSH (pipelining, reutilización de conexiones). |
 | `requirements.txt` | Versiones de las herramientas del nodo de control. |
+| `requirements.yml` | Colecciones de Ansible que usan los roles (versiones fijadas). |
+| `.yamllint` · `.ansible-lint` | Configuración del lint. `ansible-lint` usa el perfil `production`, el más estricto. |
+| `.github/workflows/lint.yml` | CI: pasa `yamllint` y `ansible-lint` en cada pull request y en cada push a `main`. |
+| `Makefile`       | Atajos para el laboratorio, el despliegue y el lint (ver "Uso"). |
+| `inventory/group_vars/all/` | Variables compartidas (`main.yml`) y secretos cifrados (`vault.yml`, con `vault.yml.example` como plantilla). |
 | `.gitignore`     | Evita subir secretos, entornos de Python, cachés y ficheros de editores y del sistema operativo. |
 
 > ⚠️ **Solo laboratorio:** `ansible.cfg` desactiva la comprobación de claves de host SSH (`host_key_checking = False`), porque los contenedores se recrean a menudo y cambian de clave. En un entorno real no se haría.
@@ -96,14 +100,18 @@ ansible-config dump --only-changed -t all   # opciones leídas de ansible.cfg
 ### Secretos
 
 - **Nunca** se suben a Git la contraseña de Ansible Vault (`.vault_pass`) ni las claves SSH del laboratorio (`lab/ssh/*`).
-- La contraseña de Vault se comparte por un canal privado del equipo.
-- Los secretos (contraseña del repositorio restic y de PostgreSQL) están en
-  `inventory/group_vars/all/vault.yml`, **siempre cifrado** 
-  `vault.yml.example` muestra qué variables contiene.
-- Tras clonar, crea tu `.vault_pass` con la contraseña que te pase el equipo:
-  `umask 077 && printf '%s\n' 'LA_CONTRASEÑA' > .vault_pass`.
-  Sin él, Ansible falla porque `ansible.cfg` apunta a ese fichero.
-- Editar el Vault: `ansible-vault edit inventory/group_vars/all/vault.yml`.
+- Los secretos del proyecto (la contraseña del repositorio restic, `backup_restic_password`, y la de PostgreSQL, `db_password`) están en `inventory/group_vars/all/vault.yml`, **siempre cifrado**: tiene que empezar por `$ANSIBLE_VAULT;1.1;AES256`. `vault.yml.example` muestra qué variables contiene.
+- La contraseña de Vault se comparte por un canal privado del equipo. Cada uno la guarda en su fichero `.vault_pass`, en la raíz del repositorio:
+  ```bash
+  umask 077 && printf '%s\n' 'LA_CONTRASEÑA' > .vault_pass
+  ```
+  Sin él, Ansible falla en cualquier comando, porque `ansible.cfg` apunta a ese fichero.
+- Ver o editar el Vault:
+  ```bash
+  ansible-vault view inventory/group_vars/all/vault.yml
+  ansible-vault edit inventory/group_vars/all/vault.yml
+  ```
+- Copia de seguridad de `backup_restic_password`: se guarda **fuera del repositorio**. Sin ella, todas las copias de seguridad son irrecuperables.
 
 ---
 
@@ -123,16 +131,17 @@ Las máquinas se ven entre sí por su nombre (`db01`, `web01`, `backup01`) dentr
 
 ### Puesta en marcha (una sola vez)
 
-1. Crear la clave SSH del laboratorio. **El nombre debe ser exactamente este**, porque es el que usa el inventario:
+1. Crear el `.vault_pass` con la contraseña que pasa el equipo por privado (ver "Secretos").
+2. Crear la clave SSH del laboratorio. **El nombre debe ser exactamente este**, porque es el que usa el inventario:
    ```bash
    ssh-keygen -t ed25519 -C "ansible-lab" -f ~/.ssh/id_ed25519_ansible_lab -N ""
    cp ~/.ssh/id_ed25519_ansible_lab.pub lab/ssh/authorized_keys
    ```
-2. Construir y levantar las máquinas:
+3. Construir y levantar las máquinas:
    ```bash
    docker compose -f lab/docker-compose.yml up -d --build
    ```
-3. Comprobar la conexión (debe dar `ok=3 changed=0 failed=0` en las tres):
+4. Comprobar la conexión (debe dar `ok=3 changed=0 failed=0` en las tres):
    ```bash
    ansible-playbook playbooks/ping.yml
    ```
@@ -167,12 +176,30 @@ deben arrancarlos explícitamente, por ejemplo con `ansible.builtin.service` y `
 
 ## Uso
 
-### Copias de seguridad
+### Despliegue completo
+
+Aplica los cuatro roles: `common` en todas las máquinas, `database` en `db01`, `webserver` en `web01` y `backup` en `db01` (que prepara también `backup01`).
 
 ```bash
-# Aplicar el rol backup (de momento, con una BD de ejemplo y la contraseña de pruebas)
-ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml
+ansible-playbook site.yml
+ansible-playbook site.yml    # la segunda ejecución debe dar changed=0
+```
 
+### Probar un rol
+
+Cada rol tiene su playbook de prueba (`test_common.yml`, `test_database.yml`, `test_webserver.yml` y `test_backup.yml`). Se aplica dos veces (la segunda debe dar `changed=0`) y después con `--check --diff`, que también debe dar `changed=0`:
+
+```bash
+ansible-playbook playbooks/test_<rol>.yml
+ansible-playbook playbooks/test_<rol>.yml
+ansible-playbook playbooks/test_<rol>.yml --check --diff
+```
+
+Las pruebas siempre sobre un laboratorio limpio (`down -v` y volver a levantar). En un contenedor recién creado la primera ejecución debe ser real, no con `--check`.
+
+### Copias de seguridad y restauración
+
+```bash
 # Lanzar una copia en el momento
 ansible-playbook playbooks/backup.yml
 
@@ -180,31 +207,39 @@ ansible-playbook playbooks/backup.yml
 ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
 ```
 
-Detalles (variables, secretos, escenario de la demo, comandos útiles y pendientes) en
-[`roles/backup/README.md`](roles/backup/README.md).
+`restore.yml` restaura y después verifica la base de datos y la web. Detalles (variables, escenario de la demo, comandos útiles) en
+[`roles/backup/README.md`](roles/backup/README.md). Guion de la demo, paso a paso, en [`docs/demo.md`](docs/demo.md).
 
-### Despliegue completo
+### Atajos con `make`
 
-    ansible-playbook site.yml
-    ansible-playbook site.yml    # la segunda ejecución debe dar changed=0
+Requiere `make` (`sudo apt install -y make`).
+
+| Comando | Qué hace |
+|---------|----------|
+| `make up` / `make down` | Levanta / destruye el laboratorio (los volúmenes se conservan) |
+| `make clean` | Laboratorio limpio: destruye máquinas y volúmenes |
+| `make ping` | Comprueba la conexión con las tres máquinas |
+| `make site` | Despliega todo (`site.yml`) |
+| `make lint` | Pasa `yamllint` y `ansible-lint` |
 
 ---
 
 ## Estructura del repositorio
 
 ```
-proyecto-ansible/
+EI1044_Ansible_Project/
+├── README.md · CONTRIBUTING.md · Makefile
 ├── ansible.cfg · site.yml · requirements.txt · requirements.yml
-├── .gitignore · .yamllint · .ansible-lint · Makefile
-├── .github/          plantilla de PR y CI (lint)
+├── .gitignore · .yamllint · .ansible-lint
+├── .github/          plantilla de PR y CI (workflows/lint.yml)
 ├── docs/             arquitectura, reparto y guion de la demo
 ├── lab/              Dockerfile y docker-compose del laboratorio
-├── inventory/        hosts.yml y variables por grupo (group_vars)
-├── playbooks/        ping, backup, restore y pruebas por rol
+├── inventory/        hosts.yml y variables por grupo (group_vars, con el Vault cifrado)
+├── playbooks/        ping, backup, restore y pruebas por rol (test_*)
 └── roles/
-    ├── common/       configuración base de todas las máquinas
-    ├── webserver/    nginx + plantillas
-    ├── database/     PostgreSQL
+    ├── common/       paquetes, zona horaria, hora y locale de todas las máquinas
+    ├── webserver/    nginx, PHP-FPM y plantillas
+    ├── database/     PostgreSQL, usuario, base de datos y datos de ejemplo
     └── backup/       restic, pg_dump, retención y programación
 ```
 
@@ -213,7 +248,16 @@ proyecto-ansible/
 ## Forma de trabajo
 
 - Cada tarea se hace en su propia rama (`feature/...`) y llega a `main` mediante una **Pull Request** que el propio autor rellena con la plantilla y fusiona. No hay revisor: la PR sirve para que cada uno repase lo que ha hecho y para dejar explicado en el historial qué cambió y por qué.
-- Dentro de cada rol, - Las variables compartidas entre roles (`db_host`, `db_port`, `db_name`, `db_user`) tienen su valor directamente en `inventory/group_vars/all/main.yml` 
-(sin prefijo de rol, porque esa regla solo se aplica dentro de los roles) y la contraseña (`db_password`) está en el Vault. Cada rol las enlaza a las suyas, por ejemplo `database_password: "{{ db_password }}"` o `webserver_db_host: "{{ db_host }}"`.
+- Commits con el prefijo de la parte: `common:`, `webserver:`, `database:`, `backup:`, `lab:`, `docs:`, `ci:`.
+- Las variables compartidas entre roles (`db_host`, `db_port`, `db_name`, `db_user`) tienen su valor directamente en `inventory/group_vars/all/main.yml` (sin prefijo de rol, porque esa regla solo se aplica dentro de los roles) y la contraseña (`db_password`) está en el Vault. Cada rol las enlaza a las suyas, por ejemplo `database_password: "{{ db_password }}"` o `webserver_db_host: "{{ db_host }}"`.
 - Una tarea está **hecha** cuando funciona sobre un laboratorio limpio, es idempotente (`changed=0` en la segunda ejecución), pasa `yamllint` y `ansible-lint` y tiene el README del rol actualizado.
-- Detalles en [CONTRIBUTING.md](CONTRIBUTING.md).
+- Detalles (flujo, variables, secretos y errores típicos de lint) en [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
+## Documentación
+
+- [`docs/arquitectura.md`](docs/arquitectura.md): máquinas, roles y diagrama.
+- [`docs/reparto.md`](docs/reparto.md): quién hace qué y las dependencias entre partes.
+- [`docs/demo.md`](docs/demo.md): guion de la demo (perder `db01` y recuperarla).
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo contribuir.
