@@ -3,8 +3,8 @@
 | Persona | Parte | Contenido |
 |---------|-------|-----------|
 | Jose Manuel | common + coordinación | Rol common, `site.yml`, Vault, variables compartidas, lint y CI, Makefile, documentación y presentación |
-| Paco | webserver | nginx, plantillas Jinja2, handlers, variables `webserver_*` |
-| Joel | database | PostgreSQL, usuario, base de datos con datos de ejemplo, variables `database_*` |
+| Francisco Doñate | webserver | nginx, plantillas Jinja2, handlers, variables `webserver_*` |
+| Joel Gil | database | PostgreSQL, usuario, base de datos con datos de ejemplo, variables `database_*` |
 | Juan Carmona | backup | restic, volcado de la BD, programación, retención, `backup.yml` y restauración, y la configuración inicial del laboratorio y del lint |
 | Los cuatro | restore.yml | Cada uno escribe la verificación de su parte |
 
