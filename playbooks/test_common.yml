@@ -1,0 +1,6 @@
+---
+- name: Probar el rol common
+  hosts: all
+  become: true
+  roles:
+    - common
