@@ -1,0 +1,44 @@
+---
+- name: Instalar paquetes base
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Apuntar /etc/localtime a la zona horaria
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ common_timezone }}"
+    dest: /etc/localtime
+    state: link
+    force: true
+
+- name: Fijar /etc/timezone
+  ansible.builtin.copy:
+    content: "{{ common_timezone }}\n"
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Generar el locale
+  community.general.locale_gen:
+    name: "{{ common_locale }}"
+    state: present
+
+- name: Fijar el locale por defecto
+  ansible.builtin.copy:
+    content: "LANG={{ common_locale }}\n"
+    dest: /etc/default/locale
+    owner: root
+    group: root
+    mode: "0644"
+
+# En un contenedor no se arranca: comparte el reloj del anfitrión y chrony
+# intentaría modificarlo. En una máquina real sí se habilita.
+- name: Arrancar y habilitar la sincronización de hora (solo fuera de contenedores)
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true
+  when: ansible_facts['virtualization_type'] | default('') != 'docker'
