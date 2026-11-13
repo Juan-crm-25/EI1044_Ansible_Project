@@ -13,7 +13,7 @@ backup_repo_url: "sftp:{{ backup_repo_user }}@{{ backup_repo_host }}:{{ backup_r
 # --- Versión de restic (binario oficial) ---
 backup_restic_version: "0.19.1"
 backup_restic_bin: /usr/local/bin/restic
-# Traducción del fact ansible_architecture al nombre que usa restic en sus descargas
+# Traducción del fact ansible_facts['architecture'] al nombre que usa restic en sus descargas
 backup_restic_arch_map:
   x86_64: amd64
   aarch64: arm64
