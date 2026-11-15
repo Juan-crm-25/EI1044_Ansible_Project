@@ -3,7 +3,7 @@
 .DEFAULT_GOAL := help
 
 COMPOSE := docker compose -f lab/docker-compose.yml
-LINT_PATHS := roles/common roles/backup site.yml playbooks/backup.yml playbooks/restore.yml playbooks/test_backup.yml playbooks/test_common.yml
+LINT_PATHS := roles/common roles/database roles/webserver roles/backup site.yml playbooks/backup.yml playbooks/restore.yml playbooks/test_common.yml playbooks/test_database.yml playbooks/test_webserver.yml playbooks/test_backup.yml
 
 .PHONY: help up down clean ping site lint
 
