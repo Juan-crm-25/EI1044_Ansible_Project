@@ -2,7 +2,7 @@
 # --- A. Instalar restic (binario oficial, versión fijada y verificada) ---
 - name: Instalar restic {{ backup_restic_version }}
   vars:
-    backup_restic_fichero: "restic_{{ backup_restic_version }}_linux_{{ backup_restic_arch_map[ansible_architecture] }}.bz2"
+    backup_restic_fichero: "restic_{{ backup_restic_version }}_linux_{{ backup_restic_arch_map[ansible_facts['architecture']] }}.bz2"
     backup_restic_descargas: "https://github.com/restic/restic/releases/download/v{{ backup_restic_version }}"
   block:
     - name: Descargar restic y verificar su suma SHA-256

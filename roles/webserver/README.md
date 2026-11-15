@@ -55,22 +55,24 @@ Todas están en [`defaults/main.yml`](defaults/main.yml) y se pueden cambiar en
 
 ## Secretos
 
-`db_password` no tiene valor por defecto: debe ir cifrada en Ansible Vault. Mientras no
-exista, para probar se usa un fichero **fuera del repositorio**:
+La contraseña de la base de datos (`db_password`) está **cifrada con Ansible Vault** en
+`inventory/group_vars/all/vault.yml`. Ansible la descifra sola en cada ejecución con el
+fichero `.vault_pass` de la raíz del proyecto (indicado en `ansible.cfg` y fuera de Git).
+Es la **misma** contraseña que usa el rol `database` para crear el usuario, así que la web
+y la base de datos no pueden quedar desincronizadas.
 
-```bash
-umask 077
-[ -f ~/.ansible-lab-secrets.yml ] || echo '---' > ~/.ansible-lab-secrets.yml
-printf 'db_password: "%s"\n' "$(openssl rand -base64 24)" >> ~/.ansible-lab-secrets.yml
-```
+> !! No pases contraseñas con `-e`: las variables `-e` tienen la máxima prioridad en
+> Ansible y **sustituirían** a las del Vault.
 
 ## Uso
 
 ```bash
-ansible-playbook playbooks/test_webserver.yml -e @~/.ansible-lab-secrets.yml
+ansible-playbook playbooks/test_webserver.yml
 ```
 
-Es idempotente: la segunda ejecución da `changed=0`. Después:
+El playbook aplica primero el rol `database` en db01, con los datos de ejemplo
+(`database_load_sample_data: true`), y después este rol en web01. Es idempotente: la
+segunda ejecución da `changed=0`. Después:
 
 - Portada: <http://127.0.0.1:8080>
 - Clientes: <http://127.0.0.1:8080/clientes.php> (código **200** con la tabla; **500** si no
@@ -90,8 +92,8 @@ Es idempotente: la segunda ejecución da `changed=0`. Después:
 - **Contraseña fuera de la carpeta pública**: si PHP fallara, nginx no podría servir
   `db.ini` como texto. Solo pueden leerlo root y PHP-FPM (`www-data`), y la tarea usa
   `no_log` para que la contraseña no aparezca en la salida de Ansible.
-- **Mínimo privilegio en la BD**: la web usa el usuario `app`, con permiso **solo de
-  lectura** (`SELECT`) sobre `clientes`.
+- **Usuario de aplicación, no el administrador**: la web se conecta con `appuser`, nunca
+  con `postgres`, y solo desde la red del laboratorio.
 - **Validar antes de recargar**: el handler ejecuta `nginx -t` antes del `reload`; si la
   configuración tiene errores, nginx sigue funcionando con la anterior.
 - **`reload` y no `restart`**: aplica la configuración sin cortar las conexiones abiertas.
@@ -103,19 +105,17 @@ Es idempotente: la segunda ejecución da `changed=0`. Después:
 - **Sin dependencias en `meta`**: la base de datos está en otra máquina; el orden entre
   máquinas lo decide `site.yml`, no el rol.
 
-## Lo que necesita del rol `database`
+## Relación con los otros roles
 
-`playbooks/test_webserver.yml` incluye un play **provisional** que prepara en db01 lo que
-necesita la web. Cuando exista el rol `database`, debe encargarse de:
+- **`database`** (db01): crea la base de datos `db_name`, el usuario `db_user` con la
+  contraseña `db_password` y la tabla `clientes`, y acepta conexiones desde web01
+  (`listen_addresses` y una regla `scram-sha-256` en `pg_hba.conf`).
+- **`restore.yml`**: tras restaurar una copia, su último play pide `clientes.php` y
+  comprueba que responde **200** y muestra los clientes de ejemplo.
+- **`site.yml`**: aplica este rol a `webservers` **después** del rol `database`.
 
-1. Crear la base de datos `db_name` y el usuario `db_user` con la contraseña `db_password`.
-2. Darle a ese usuario permiso `SELECT` sobre la tabla `clientes` (con datos de ejemplo).
-3. Aceptar conexiones por la red: `listen_addresses` y una regla en `pg_hba.conf` para
-   `db_user` desde la red del laboratorio con `scram-sha-256`.
+## Posibles mejoras
 
-## Pendiente
-
-- **Rol `database`**: sustituir el play provisional de `test_webserver.yml` por ese rol
-  (marcado con `PENDIENTE (rol database)`).
-- **Vault**: `db_password` cifrada en `inventory/group_vars/all/vault.yml`.
-- **`restore.yml`**: play que verifique que la web responde tras una restauración.
+- **Usuario de solo lectura para la web**: hoy `appuser` es dueño de la tabla, así que
+  podría modificarla. Un usuario aparte con solo `SELECT` aplicaría mejor el principio de
+  mínimo privilegio.

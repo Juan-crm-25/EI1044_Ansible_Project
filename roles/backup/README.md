@@ -31,11 +31,12 @@ El rol se aplica a **db01** y prepara también **backup01** mediante `delegate_t
 
 ## Requisitos
 
-- **db01** con PostgreSQL en marcha y la base de datos a copiar.
+- **db01** con PostgreSQL en marcha y la base de datos a copiar (rol `database`).
 - **backup01** accesible **por su nombre** desde db01 (en el laboratorio, la red de Docker).
 - Acceso a **Internet** desde db01: restic se descarga de GitHub.
-- Las colecciones de [`requirements.yml`](../../requirements.yml) (`community.general`,
-  `ansible.posix`; `community.postgresql` solo para `test_backup.yml`). Vienen incluidas en el paquete `ansible`.
+- La contraseña de Ansible Vault en `.vault_pass` (ver el README general).
+- Las colecciones de [`requirements.yml`](../../requirements.yml) (el rol usa `community.general`
+  y `ansible.posix`). Vienen incluidas en el paquete `ansible`.
 - Probado con ansible-core 2.21, Ubuntu 22.04, PostgreSQL 14 y restic 0.19.1.
 
 ## Variables
@@ -53,7 +54,7 @@ cambiarlas hay que usar `inventory/group_vars/databases/main.yml` (no `backup_se
 | `backup_restic_version` | `0.19.1` | Versión de restic que se descarga |
 | `backup_restic_bin` | `/usr/local/bin/restic` | Dónde se instala restic |
 | `backup_restic_arch_map` | `x86_64: amd64`, `aarch64: arm64` | Traducción de la arquitectura al nombre de la descarga |
-| `backup_db_name` | `app` | Base de datos que se copia |
+| `backup_db_name` | `"{{ database_name }}"` | Base de datos que se copia: la del rol `database` |
 | `backup_script` | `/usr/local/sbin/backup-db.sh` | Ruta del script de copia |
 | `backup_keep_daily` / `_weekly` / `_monthly` | `7` / `4` / `6` | Retención |
 | `backup_schedule` | `*-*-* 03:00:00 Europe/Madrid` | Cuándo se hace la copia (formato `OnCalendar` de systemd) |
@@ -63,24 +64,21 @@ cambiarlas hay que usar `inventory/group_vars/databases/main.yml` (no `backup_se
 ## Secretos
 
 `backup_restic_password` **no tiene valor por defecto a propósito**: si falta, el rol falla.
-Debe ir cifrada en Ansible Vault (ver *Pendiente*).
+Está cifrada en Ansible Vault, en `inventory/group_vars/all/vault.yml`. Ansible la descifra
+sola con la contraseña de `.vault_pass`.
 
 > ⚠️ Sin esta contraseña **todas las copias son irrecuperables**. Hay que guardar una copia de
 > ella fuera del repositorio.
 
-Mientras no exista el Vault, para probar en local se usa un fichero **fuera del repositorio**:
-
-```bash
-umask 077
-printf -- '---\nbackup_restic_password: "%s"\n' "$(openssl rand -base64 32)" > ~/.ansible-lab-secrets.yml
-```
+> ⚠️ **No pases contraseñas con `-e`**: `-e` tiene más prioridad que el Vault y la sustituiría.
+> El repositorio quedaría con otra contraseña y las copias dejarían de poder abrirlo.
 
 ## Uso
 
-**Aplicar el rol** (de momento, con una base de datos de ejemplo; ver *Pendiente*):
+**Aplicar el rol** (junto con el rol `database`, que crea la base de datos que se copia):
 
 ```bash
-ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml
+ansible-playbook playbooks/test_backup.yml
 ```
 
 Es idempotente: la segunda ejecución da `changed=0`. `--check --diff` solo tiene sentido
@@ -167,40 +165,16 @@ systemctl status backup-db.service         # 'failed' si la última copia falló
   al arrancar) y zona horaria en `OnCalendar` (las 03:00 españolas aunque la máquina esté en UTC).
 - **`CacheDirectory=restic`**: systemd no define `$HOME` y restic necesita una caché.
 
-## Pendiente
+## Integración con otras partes
 
-Cada punto está marcado también en el código; se encuentran con
-`grep -rn "PENDIENTE (" roles/backup playbooks`.
+El rol `backup` depende de lo que hacen otras partes del proyecto. **Si alguna de estas cosas
+cambia, las copias o la restauración pueden dejar de funcionar.**
 
-### PENDIENTE (rol database), para quien haga el rol `database`
-
-1. `defaults/main.yml`: `backup_db_name` vale `app`. Debe apuntar a la variable de tu rol, por
-   ejemplo `backup_db_name: "{{ db_name }}"`.
-2. `playbooks/test_backup.yml`: sustituir las `pre_tasks` que crean una BD de ejemplo por tu rol:
-   `roles: [database, backup]`.
-3. Tu rol debe **arrancar** PostgreSQL de forma explícita (`state: started`), porque en el
-   laboratorio los servicios no arrancan solos al instalarse.
-4. El rol `backup` ejecuta `pg_dump` como el usuario del sistema `postgres` mediante
-   autenticación *peer*. **No la desactives** en `pg_hba.conf` para las conexiones locales de `postgres`.
-5. Deja datos de ejemplo **conocidos** (como la tabla `clientes` con 3 filas): `restore.yml` los
-   usará para verificar que la restauración es correcta.
-6. Los datos de PostgreSQL deben seguir en `/var/lib/postgresql`, que es el volumen `db_data`
-   del laboratorio.
-
-### PENDIENTE (Vault), para quien configure Ansible Vault
-
-1. Definir `backup_restic_password` **cifrada** en `inventory/group_vars/all/vault.yml`
-   (tiene que verla db01).
-2. Añadirla a `vault.yml.example` con un valor de ejemplo.
-3. Guardar una copia de la contraseña **fuera del repositorio**: sin ella, todas las copias
-   son irrecuperables.
-4. Cuando esté, ya no hará falta `-e @~/.ansible-lab-secrets.yml`.
-
-### PENDIENTE (restore), para los roles `database` y `webserver`
-
-`playbooks/restore.yml` ya restaura los datos. Faltan, en los huecos marcados en ese fichero:
-
-1. **Rol `database`**: un play que verifique la base de datos restaurada (por ejemplo, que
-   están los datos de ejemplo conocidos). Además, tu rol debe crear la base de datos (vacía)
-   al reconstruir db01: `pg_restore` restaura **dentro** de ella.
-2. **Rol `webserver`**: un play que verifique que la web responde.
+| De | Qué necesita el rol `backup` |
+|----|------------------------------|
+| Rol `database` | Que defina `database_name` (la usa `backup_db_name`), arranque PostgreSQL y cree la base de datos: `pg_restore` restaura **dentro** de ella |
+| Rol `database` | Que mantenga la autenticación *peer* local del usuario `postgres` en `pg_hba.conf`: `pg_dump` y `pg_restore` la usan |
+| Rol `database` | Que los datos de PostgreSQL estén en `/var/lib/postgresql` (el volumen `db_data` del laboratorio) |
+| Vault | `backup_restic_password` en `inventory/group_vars/all/vault.yml` |
+| `playbooks/restore.yml` | Después de restaurar, las verificaciones de los roles `database` (los clientes de ejemplo) y `webserver` (la web los muestra) |
+| `site.yml` | Reconstruye db01 antes de restaurar. Mientras no esté en `main`, se usa `playbooks/test_backup.yml` |

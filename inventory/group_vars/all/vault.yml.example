@@ -1,0 +1,6 @@
+---
+# Plantilla de vault.yml. Copiar a vault.yml, poner valores reales y cifrar con:
+#   ansible-vault encrypt inventory/group_vars/all/vault.yml
+# Nunca subir vault.yml sin cifrar.
+backup_restic_password: "CAMBIAR_POR_UNA_CONTRASEÑA_ALEATORIA"
+db_password: "CAMBIAR_POR_UNA_CONTRASEÑA_ALEATORIA"

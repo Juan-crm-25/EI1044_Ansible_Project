@@ -26,5 +26,6 @@ webserver_db_host: "{{ db_host }}"
 webserver_db_port: "{{ db_port }}"
 webserver_db_name: "{{ db_name }}"
 webserver_db_user: "{{ db_user }}"
-# Secreta: vendrá de Vault (de momento, de ~/.ansible-lab-secrets.yml)
+# Secreta: viene cifrada del Vault (inventory/group_vars/all/vault.yml)
+# No pasarla con -e: tendría prioridad sobre el Vault
 webserver_db_password: "{{ db_password }}"
