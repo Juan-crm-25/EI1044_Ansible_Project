@@ -18,8 +18,8 @@ database_encoding: UTF8
 
 # Contraseña del usuario. Es la MISMA que usa la web (variable compartida
 # db_password), así los dos roles no pueden quedar desincronizados.
-# No tiene valor aquí: hoy viene de ~/.ansible-lab-secrets.yml y, más
-# adelante, de inventory/group_vars/all/vault.yml (Ansible Vault).
+# No tiene valor aquí: viene cifrada del Vault (inventory/group_vars/all/vault.yml).
+# No pasarla con -e: tendría prioridad sobre el Vault.
 database_password: "{{ db_password }}"
 
 # --- Red ---
