@@ -103,48 +103,46 @@ compartida `db_password`, la misma que usa la web; así los dos lados no pueden 
 desincronizados. Si falta, el rol se detiene en su primera tarea con un mensaje claro (la tarea que
 crea el usuario lleva `no_log`, y sin esta comprobación el error saldría oculto).
 
-Mientras no exista el Vault, para probar se usa el fichero de secretos **fuera del repositorio**:
-
-```bash
-echo 'db_password: "root"' >> ~/.ansible-lab-secrets.yml
-```
-
-El mismo fichero lo usa el rol `backup`: para la demo (`test_backup.yml`) debe tener
-**las dos** contraseñas:
+`db_password` está cifrada en el Vault, en `inventory/group_vars/all/vault.yml`, junto con la
+contraseña de las copias:
 
 | Variable | Rol | Para qué |
 |----------|-----|----------|
 | `db_password` | `database` y `webserver` | Contraseña del usuario `appuser` |
 | `backup_restic_password` | `backup` | Cifrado de las copias de seguridad |
 
-> ⚠️ Añade las líneas con `>>`. Con `>` el fichero se sobrescribe y se pierde la otra
-> contraseña. Para comprobarlo: `cat ~/.ansible-lab-secrets.yml`.
+Ansible la descifra solo con la contraseña de `.vault_pass` (ver "Secretos" en el README general).
+Para comprobar que el Vault se abre:
 
-> 🚧 **Pendiente (Vault):** definir `db_password` cifrada en `inventory/group_vars/all/vault.yml`
-> (Persona 1) y añadirla a `vault.yml.example`. El rol no necesita cambios: ya lee `db_password`.
+```bash
+ansible-vault view inventory/group_vars/all/vault.yml > /dev/null && echo "Vault OK"
+```
+
+> ⚠️ **No pases contraseñas con `-e`**: `-e` tiene más prioridad que el Vault y la sustituiría.
+> La base de datos y la web acabarían con una contraseña distinta de la del Vault.
 
 ## Uso
-
-Todos los comandos llevan el fichero de secretos (`-e @~/.ansible-lab-secrets.yml`).
 
 **Aplicar el rol** y comprobar que los datos de ejemplo están:
 
 ```bash
-ansible-playbook playbooks/test_database.yml -e @~/.ansible-lab-secrets.yml
+ansible-playbook playbooks/test_database.yml
 ```
 
 Es idempotente: la segunda ejecución da `changed=0`. `--check --diff` solo tiene sentido **después**
 de aplicarlo una vez: sobre un laboratorio vacío falla, porque unas tareas dependen de paquetes que
 instalan otras.
 
-**Comprobar la conexión por la red** (como lo haría la web):
+**Comprobar la conexión por la red** (como lo haría la web), con la contraseña sacada del Vault:
 
 ```bash
+DBPASS=$(ansible-vault view inventory/group_vars/all/vault.yml | sed -n 's/^db_password: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p')
+
 # Funciona: appuser, con contraseña, por la red → Ana, Luis y Marta
-docker exec -e PGPASSWORD=root db01 bash -c 'psql -h $(hostname -I | cut -d" " -f1) -U appuser -d app -c "SELECT * FROM clientes;"'
+docker exec -e PGPASSWORD="$DBPASS" db01 bash -c 'psql -h $(hostname -I | cut -d" " -f1) -U appuser -d app -c "SELECT * FROM clientes;"'
 
 # Se rechaza: cualquier otro usuario por la red → "no pg_hba.conf entry"
-docker exec -e PGPASSWORD=root db01 bash -c 'psql -h $(hostname -I | cut -d" " -f1) -U postgres -d app -c "SELECT 1;"'
+docker exec -e PGPASSWORD="$DBPASS" db01 bash -c 'psql -h $(hostname -I | cut -d" " -f1) -U postgres -d app -c "SELECT 1;"'
 ```
 
 Y desde el navegador, con el rol `webserver` aplicado: <http://127.0.0.1:8080/clientes.php>.
@@ -152,13 +150,13 @@ Y desde el navegador, con el rol `webserver` aplicado: <http://127.0.0.1:8080/cl
 **Primer despliegue de la demo** (con datos de ejemplo):
 
 ```bash
-ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml -e database_load_sample_data=true
+ansible-playbook playbooks/test_backup.yml -e database_load_sample_data=true
 ```
 
 **Reconstruir db01** tras perderla (sin datos de ejemplo: la restauración los devuelve):
 
 ```bash
-ansible-playbook playbooks/test_backup.yml -e @~/.ansible-lab-secrets.yml
+ansible-playbook playbooks/test_backup.yml
 ansible-playbook playbooks/restore.yml -e backup_restore_confirmar=true
 ```
 

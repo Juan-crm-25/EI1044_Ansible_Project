@@ -12,7 +12,7 @@
     that:
       - db_password is defined
       - db_password | length > 0
-    fail_msg: "Falta db_password: añádela a ~/.ansible-lab-secrets.yml (luego irá en Ansible Vault)"
+    fail_msg: "Falta db_password: debe estar en el Vault (inventory/group_vars/all/vault.yml). Comprueba que existe .vault_pass"
     quiet: true
 
 - name: Instalar PostgreSQL y dependencias

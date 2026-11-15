@@ -11,5 +11,5 @@ database_user: appuser
 # Tabla de ejemplo (restore.yml verifica sus 3 filas).
 database_table: clientes
 
-# La contraseña no se define aquí: el rol usa la variable compartida db_password
-# (hoy en ~/.ansible-lab-secrets.yml; irá cifrada en group_vars/all/vault.yml).
+# La contraseña no se define aquí: el rol usa la variable compartida db_password,
+# cifrada en el Vault (inventory/group_vars/all/vault.yml).
