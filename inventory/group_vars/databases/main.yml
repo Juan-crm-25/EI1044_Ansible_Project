@@ -4,6 +4,12 @@
 # los valores por defecto de roles/database/defaults/main.yml.
 # El resto de variables database_* (paquetes, codificación...) se dejan en los defaults.
 
+# Base de datos y usuario de la aplicación: los mismos que usa la web (group_vars/all).
+# Van aquí, en el inventario, y no solo en los defaults del rol database, porque los usan
+# también plays que no aplican ese rol (el de backup en site.yml y los de restore.yml).
+database_name: "{{ db_name }}"
+database_user: "{{ db_user }}"
+
 # Tabla de ejemplo (restore.yml verifica sus 3 filas).
 database_table: clientes
 
