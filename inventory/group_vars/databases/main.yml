@@ -4,10 +4,6 @@
 # los valores por defecto de roles/database/defaults/main.yml.
 # El resto de variables database_* (paquetes, codificación...) se dejan en los defaults.
 
-# Base de datos y usuario de la aplicación.
-database_name: app
-database_user: appuser
-
 # Tabla de ejemplo (restore.yml verifica sus 3 filas).
 database_table: clientes
 

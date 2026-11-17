@@ -12,8 +12,8 @@ database_packages:
   - acl
 
 # --- Base de datos y usuario ---
-database_name: app
-database_user: appuser
+database_name: "{{ db_name }}"
+database_user: "{{ db_user }}"
 database_encoding: UTF8
 
 # Contraseña del usuario. Es la MISMA que usa la web (variable compartida
